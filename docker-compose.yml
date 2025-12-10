@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pim-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: pim_db
+      MYSQL_USER: pim_user
+      MYSQL_PASSWORD: pim_pass123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - pim-network
+
+volumes:
+  mysql_data:
+
+networks:
+  pim-network:
+    driver: bridge
