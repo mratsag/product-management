@@ -20,4 +20,6 @@ public interface WalletAccountService {
     WalletAccountResponse updateWalletAccountStatus(Long id, WalletAccountStatusUpdateRequest request); // WA-04
 
     boolean checkBalance(Long walletAccountId, java.math.BigDecimal requiredAmount); // WA-05
+
+    PageResponse<WalletAccountResponse> getAllWalletAccounts(Pageable pageable); // WA-06: List all wallets
 }

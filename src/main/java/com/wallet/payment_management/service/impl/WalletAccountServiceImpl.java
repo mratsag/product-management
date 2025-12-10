@@ -6,13 +6,17 @@ import com.wallet.payment_management.dto.response.PageResponse;
 import com.wallet.payment_management.dto.response.WalletAccountResponse;
 import com.wallet.payment_management.entity.WalletAccount;
 import com.wallet.payment_management.enums.WalletAccountStatusEnum;
+import com.wallet.payment_management.event.WalletCreatedEvent;
+import com.wallet.payment_management.event.WalletStatusChangedEvent;
 import com.wallet.payment_management.exception.ClosedAccountException;
+import com.wallet.payment_management.exception.DuplicateResourceException;
 import com.wallet.payment_management.exception.InvalidStatusTransitionException;
 import com.wallet.payment_management.exception.ResourceNotFoundException;
 import com.wallet.payment_management.repository.WalletAccountRepository;
 import com.wallet.payment_management.service.WalletAccountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -29,14 +33,24 @@ import java.util.stream.Collectors;
 public class WalletAccountServiceImpl implements WalletAccountService {
 
     private final WalletAccountRepository walletAccountRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public WalletAccountResponse createWalletAccount(WalletAccountRequest request) {
         log.info("Creating wallet account for customer: {}", request.getCustomerId());
 
+        // Check if wallet already exists for this customer and currency
+        if (walletAccountRepository.existsByCustomerIdAndCurrencyCode(
+                request.getCustomerId(), request.getCurrencyCode())) {
+            throw new DuplicateResourceException(
+                    String.format("Wallet already exists for customer %d with currency %s",
+                            request.getCustomerId(), request.getCurrencyCode()));
+        }
+
         WalletAccount walletAccount = WalletAccount.builder()
                 .customerId(request.getCustomerId())
-                .accountType(request.getAccountType() != null ? request.getAccountType() : com.wallet.payment_management.enums.WalletAccountTypeEnum.STANDARD)
+                .accountType(request.getAccountType() != null ? request.getAccountType()
+                        : com.wallet.payment_management.enums.WalletAccountTypeEnum.STANDARD)
                 .currencyCode(request.getCurrencyCode())
                 .currentBalance(BigDecimal.ZERO)
                 .status(WalletAccountStatusEnum.ACTIVE)
@@ -45,22 +59,31 @@ public class WalletAccountServiceImpl implements WalletAccountService {
         WalletAccount saved = walletAccountRepository.save(walletAccount);
         log.info("Wallet account created with ID: {}", saved.getId());
 
+        // Publish wallet created event
+        eventPublisher.publishEvent(new WalletCreatedEvent(
+                saved.getId(),
+                saved.getCustomerId(),
+                saved.getCurrencyCode(),
+                saved.getAccountType(),
+                saved.getStatus(),
+                saved.getCurrentBalance()));
+
         return mapToResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<WalletAccountResponse> getWalletAccountsByCustomerId(Long customerId, Pageable pageable) {
-        log.info("Getting wallet accounts for customer: {}, Page: {}, Size: {}", 
+        log.info("Getting wallet accounts for customer: {}, Page: {}, Size: {}",
                 customerId, pageable.getPageNumber(), pageable.getPageSize());
-        
+
         Page<WalletAccount> page = walletAccountRepository.findByCustomerId(customerId, pageable);
-        
+
         List<WalletAccountResponse> content = page.getContent()
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
-        
+
         return PageResponse.<WalletAccountResponse>builder()
                 .content(content)
                 .totalElements(page.getTotalElements())
@@ -108,6 +131,14 @@ public class WalletAccountServiceImpl implements WalletAccountService {
         WalletAccount saved = walletAccountRepository.save(walletAccount);
         log.info("Wallet account status updated. ID: {}, Status: {}", saved.getId(), saved.getStatus());
 
+        // Publish wallet status changed event
+        eventPublisher.publishEvent(new WalletStatusChangedEvent(
+                saved.getId(),
+                saved.getCustomerId(),
+                currentStatus,
+                newStatus,
+                "Status update via API"));
+
         return mapToResponse(saved);
     }
 
@@ -147,6 +178,32 @@ public class WalletAccountServiceImpl implements WalletAccountService {
                 .createdAt(walletAccount.getCreatedAt())
                 .updatedAt(walletAccount.getUpdatedAt())
                 .closedAt(walletAccount.getClosedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<WalletAccountResponse> getAllWalletAccounts(Pageable pageable) {
+        log.info("Getting all wallet accounts. Page: {}, Size: {}",
+                pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<WalletAccount> page = walletAccountRepository.findAll(pageable);
+
+        List<WalletAccountResponse> content = page.getContent()
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return PageResponse.<WalletAccountResponse>builder()
+                .content(content)
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .empty(page.isEmpty())
+                .numberOfElements(page.getNumberOfElements())
                 .build();
     }
 }

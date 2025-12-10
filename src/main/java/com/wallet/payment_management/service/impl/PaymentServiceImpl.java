@@ -6,11 +6,14 @@ import com.wallet.payment_management.dto.response.PaymentResponse;
 import com.wallet.payment_management.entity.Payment;
 import com.wallet.payment_management.enums.PaymentStatusEnum;
 import com.wallet.payment_management.enums.PaymentTypeEnum;
+import com.wallet.payment_management.event.PaymentCreatedEvent;
+import com.wallet.payment_management.event.PaymentStatusChangedEvent;
 import com.wallet.payment_management.exception.ResourceNotFoundException;
 import com.wallet.payment_management.repository.PaymentRepository;
 import com.wallet.payment_management.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public PaymentResponse createPayment(PaymentRequest request) {
@@ -44,6 +48,14 @@ public class PaymentServiceImpl implements PaymentService {
         Payment saved = paymentRepository.save(payment);
         log.info("Payment created. ID: {}", saved.getId());
 
+        // Publish payment created event
+        eventPublisher.publishEvent(new PaymentCreatedEvent(
+                saved.getId(),
+                null,
+                saved.getAmount(),
+                "TRY",
+                saved.getStatus()));
+
         return mapToResponse(saved);
     }
 
@@ -54,10 +66,21 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", "id", id));
 
+        PaymentStatusEnum previousStatus = payment.getStatus();
         payment.setStatus(status);
         Payment saved = paymentRepository.save(payment);
 
         log.info("Payment status updated. ID: {}, Status: {}", saved.getId(), saved.getStatus());
+
+        // Publish payment status changed event
+        eventPublisher.publishEvent(new PaymentStatusChangedEvent(
+                saved.getId(),
+                null, // orderId
+                previousStatus,
+                saved.getStatus(),
+                saved.getPaidAmount(),
+                saved.getAmount()));
+
         return mapToResponse(saved);
     }
 
@@ -70,7 +93,7 @@ public class PaymentServiceImpl implements PaymentService {
             LocalDateTime endDate,
             Pageable pageable) {
 
-        log.info("Getting payments. Type: {}, Status: {}, Date range: {} - {}, Page: {}, Size: {}", 
+        log.info("Getting payments. Type: {}, Status: {}, Date range: {} - {}, Page: {}, Size: {}",
                 paymentType, status, startDate, endDate, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<Payment> page;
@@ -79,7 +102,8 @@ public class PaymentServiceImpl implements PaymentService {
             page = paymentRepository.findByPaymentTypeAndStatus(paymentType, status, pageable);
         } else if (paymentType != null) {
             if (startDate != null && endDate != null) {
-                page = paymentRepository.findByPaymentTypeAndCreatedAtBetween(paymentType, startDate, endDate, pageable);
+                page = paymentRepository.findByPaymentTypeAndCreatedAtBetween(paymentType, startDate, endDate,
+                        pageable);
             } else {
                 page = paymentRepository.findByPaymentType(paymentType, pageable);
             }

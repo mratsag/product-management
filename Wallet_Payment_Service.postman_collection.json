@@ -1,0 +1,1419 @@
+{
+  "info": {
+    "_postman_id": "wallet-payment-service-v1",
+    "name": "Wallet & Payment Service",
+    "description": "Complete API collection for Wallet & Payment Management System\n\n**Base URL:** `http://localhost:8080/api`\n\n**Total Endpoints:** 29\n\n**Modules:**\n- Wallet Account (5)\n- Wallet Ledger Entry (5)\n- Wallet Ledger Entry Fee (3)\n- Payment (5)\n- Payment Transaction (5)\n- Payment Transaction Fee (3)\n- Order Payment Allocation (3)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Wallet Account",
+      "item": [
+        {
+          "name": "WA-01: Create Wallet Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save walletAccountId for later tests",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"walletAccountId\", response.id);",
+                  "    pm.environment.set(\"customerId\", response.customerId);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has wallet account data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData.status).to.eql('ACTIVE');",
+                  "    pm.expect(jsonData.currentBalance).to.eql(0.00);",
+                  "    pm.expect(jsonData.currencyCode).to.eql('TRY');",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is less than 500ms\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 12345,\n  \"currencyCode\": \"TRY\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-accounts"
+              ]
+            },
+            "description": "Müşteri için yeni bir cüzdan hesabı oluşturur. Varsayılan olarak ACTIVE durumda ve 0 bakiye ile başlar."
+          },
+          "response": []
+        },
+        {
+          "name": "WA-02: Get Wallet Accounts by Customer (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has pagination data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('content');",
+                  "    pm.expect(jsonData).to.have.property('totalElements');",
+                  "    pm.expect(jsonData).to.have.property('pageNumber');",
+                  "    pm.expect(jsonData).to.have.property('pageSize');",
+                  "    pm.expect(jsonData).to.have.property('totalPages');",
+                  "});",
+                  "",
+                  "pm.test(\"Content is an array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.content).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallet-accounts/customer/{{customerId}}?page=0&size=20&sort=createdAt,desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-accounts",
+                "customer",
+                "{{customerId}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "createdAt,desc"
+                }
+              ]
+            },
+            "description": "Müşteriye ait tüm cüzdan hesaplarını sayfalama ile listeler."
+          },
+          "response": []
+        },
+        {
+          "name": "WA-03: Get Wallet Account by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has wallet account details\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('customerId');",
+                  "    pm.expect(jsonData).to.have.property('currentBalance');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallet-accounts/{{walletAccountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-accounts",
+                "{{walletAccountId}}"
+              ]
+            },
+            "description": "ID ile cüzdan hesabı detaylarını getirir."
+          },
+          "response": []
+        },
+        {
+          "name": "WA-04: Update Wallet Account Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Status updated successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('SUSPENDED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SUSPENDED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet-accounts/{{walletAccountId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-accounts",
+                "{{walletAccountId}}",
+                "status"
+              ]
+            },
+            "description": "Cüzdan hesabının durumunu günceller (ACTIVE, SUSPENDED, CLOSED)."
+          },
+          "response": []
+        },
+        {
+          "name": "WA-05: Check Balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is boolean\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(typeof jsonData).to.eql('boolean');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallet-accounts/{{walletAccountId}}/check-balance?requiredAmount=100.00",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-accounts",
+                "{{walletAccountId}}",
+                "check-balance"
+              ],
+              "query": [
+                {
+                  "key": "requiredAmount",
+                  "value": "100.00"
+                }
+              ]
+            },
+            "description": "Cüzdan hesabında yeterli bakiye olup olmadığını kontrol eder."
+          },
+          "response": []
+        }
+      ],
+      "description": "Wallet Account modülü - Cüzdan hesapları yönetimi"
+    },
+    {
+      "name": "2. Wallet Ledger Entry",
+      "item": [
+        {
+          "name": "WL-01: Create LOAD Entry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"ledgerEntryId\", response.id);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Balance increased (CREDIT)\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.entryDirection).to.eql('CREDIT');",
+                  "    pm.expect(jsonData.entryType).to.eql('LOAD');",
+                  "    pm.expect(jsonData.status).to.eql('POSTED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAccountId\": {{walletAccountId}},\n  \"entryType\": \"LOAD\",\n  \"amount\": 1000.00,\n  \"method\": \"CARD\",\n  \"reference\": \"TXN-LOAD-001\",\n  \"description\": \"İlk yükleme\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet-ledger-entries/load",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-ledger-entries",
+                "load"
+              ]
+            },
+            "description": "Cüzdana bakiye yükler. CREDIT işlemi olarak kaydedilir."
+          },
+          "response": []
+        },
+        {
+          "name": "WL-02: Create SPEND Entry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Balance decreased (DEBIT)\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.entryDirection).to.eql('DEBIT');",
+                  "    pm.expect(jsonData.entryType).to.eql('SPEND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAccountId\": {{walletAccountId}},\n  \"entryType\": \"SPEND\",\n  \"amount\": 250.00,\n  \"method\": \"WALLET\",\n  \"reference\": \"TXN-SPEND-001\",\n  \"description\": \"Sipariş ödemesi\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet-ledger-entries/spend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-ledger-entries",
+                "spend"
+              ]
+            },
+            "description": "Cüzdandan harcama yapar. DEBIT işlemi olarak kaydedilir."
+          },
+          "response": []
+        },
+        {
+          "name": "WL-03: Create REFUND Entry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Refund processed (CREDIT)\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.entryType).to.eql('REFUND');",
+                  "    pm.expect(jsonData.entryDirection).to.eql('CREDIT');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAccountId\": {{walletAccountId}},\n  \"entryType\": \"REFUND\",\n  \"amount\": 50.00,\n  \"method\": \"WALLET\",\n  \"reference\": \"TXN-REFUND-001\",\n  \"description\": \"Sipariş iadesi\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet-ledger-entries/refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-ledger-entries",
+                "refund"
+              ]
+            },
+            "description": "Cüzdana iade yapar. CREDIT işlemi olarak kaydedilir."
+          },
+          "response": []
+        },
+        {
+          "name": "WL-04: Create ADJUSTMENT Entry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Adjustment created\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.entryType).to.eql('ADJUSTMENT');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAccountId\": {{walletAccountId}},\n  \"entryType\": \"ADJUSTMENT\",\n  \"amount\": 10.00,\n  \"method\": \"MANUAL\",\n  \"reference\": \"TXN-ADJ-001\",\n  \"description\": \"Operasyonel düzeltme\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet-ledger-entries/adjustment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-ledger-entries",
+                "adjustment"
+              ]
+            },
+            "description": "Manuel düzeltme yapar. Operasyonel/finansal hatalar için kullanılır."
+          },
+          "response": []
+        },
+        {
+          "name": "WL-05: List Ledger Entries (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has pagination data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('content');",
+                  "    pm.expect(jsonData).to.have.property('totalElements');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallet-ledger-entries?walletAccountId={{walletAccountId}}&page=0&size=20&sort=createdAt,desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-ledger-entries"
+              ],
+              "query": [
+                {
+                  "key": "walletAccountId",
+                  "value": "{{walletAccountId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "createdAt,desc"
+                }
+              ]
+            },
+            "description": "Cüzdan hareketlerini listeler. Filtreleme ve sayfalama desteği."
+          },
+          "response": []
+        }
+      ],
+      "description": "Wallet Ledger Entry modülü - Cüzdan hareketleri yönetimi"
+    },
+    {
+      "name": "3. Wallet Ledger Entry Fee",
+      "item": [
+        {
+          "name": "WF-01: Create Ledger Entry Fee",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Fee created successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData.feeType).to.eql('SERVICE_FEE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletLedgerEntryId\": {{ledgerEntryId}},\n  \"feeType\": \"SERVICE_FEE\",\n  \"amount\": 5.00,\n  \"description\": \"Servis ücreti\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet-ledger-entry-fees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-ledger-entry-fees"
+              ]
+            },
+            "description": "Cüzdan hareketi için ücret kaydı oluşturur."
+          },
+          "response": []
+        },
+        {
+          "name": "WF-02: List Fees by Ledger Entry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallet-ledger-entry-fees/ledger-entry/{{ledgerEntryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-ledger-entry-fees",
+                "ledger-entry",
+                "{{ledgerEntryId}}"
+              ]
+            },
+            "description": "Belirli bir ledger entry'ye ait tüm ücretleri listeler."
+          },
+          "response": []
+        },
+        {
+          "name": "WF-03: Customer Fee Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is a number\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(typeof jsonData).to.eql('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallet-ledger-entry-fees/customer/{{customerId}}/report?startDate=2024-01-01T00:00:00&endDate=2024-12-31T23:59:59",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet-ledger-entry-fees",
+                "customer",
+                "{{customerId}}",
+                "report"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01T00:00:00"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31T23:59:59"
+                }
+              ]
+            },
+            "description": "Müşteri için belirli tarih aralığında toplam ücret raporunu döner."
+          },
+          "response": []
+        }
+      ],
+      "description": "Wallet Ledger Entry Fee modülü - Cüzdan hareketi ücretleri"
+    },
+    {
+      "name": "4. Payment",
+      "item": [
+        {
+          "name": "P-01: Create Payment (ORDER)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"paymentId\", response.id);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Payment created with PENDING status\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('PENDING');",
+                  "    pm.expect(jsonData.paidAmount).to.eql(0.00);",
+                  "    pm.expect(jsonData.paymentType).to.eql('ORDER');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentType\": \"ORDER\",\n  \"amount\": 250.00,\n  \"description\": \"Sipariş #1001 ödemesi\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ]
+            },
+            "description": "Yeni bir ödeme kaydı oluşturur. ORDER tipi için kullanılır."
+          },
+          "response": []
+        },
+        {
+          "name": "P-02: Create Payment (DEPOSIT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Payment type is DEPOSIT\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.paymentType).to.eql('DEPOSIT');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentType\": \"DEPOSIT\",\n  \"amount\": 500.00,\n  \"description\": \"Cüzdana para yatırma\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ]
+            },
+            "description": "DEPOSIT tipi ödeme oluşturur. Cüzdana para yatırma için kullanılır."
+          },
+          "response": []
+        },
+        {
+          "name": "P-03: Update Payment Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Status updated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('PAID');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}/status?status=PAID",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "{{paymentId}}",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PAID"
+                }
+              ]
+            },
+            "description": "Ödeme durumunu günceller."
+          },
+          "response": []
+        },
+        {
+          "name": "P-04: List Payments (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has pagination\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('content');",
+                  "    pm.expect(jsonData).to.have.property('totalElements');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments?page=0&size=20&sort=createdAt,desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "createdAt,desc"
+                },
+                {
+                  "key": "paymentType",
+                  "value": "ORDER",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Ödemeleri listeler. Filtreleme ve sayfalama desteği."
+          },
+          "response": []
+        },
+        {
+          "name": "P-05: Get Payment by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Payment details returned\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('amount');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "{{paymentId}}"
+              ]
+            },
+            "description": "ID ile ödeme detaylarını getirir."
+          },
+          "response": []
+        }
+      ],
+      "description": "Payment modülü - Ödeme yönetimi"
+    },
+    {
+      "name": "5. Payment Transaction",
+      "item": [
+        {
+          "name": "PT-01: Create Transaction (AUTH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"transactionId\", response.id);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Transaction created\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.transactionType).to.eql('AUTH');",
+                  "    pm.expect(jsonData.status).to.eql('PENDING');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": {{paymentId}},\n  \"transactionType\": \"AUTH\",\n  \"paidAmount\": 250.00,\n  \"method\": \"CARD\",\n  \"reference\": \"TXN-AUTH-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment-transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-transactions"
+              ]
+            },
+            "description": "Yeni ödeme işlemi oluşturur. AUTH tipi için kullanılır."
+          },
+          "response": []
+        },
+        {
+          "name": "PT-02: Create Transaction (REFUND)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Refund transaction created\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.transactionType).to.eql('REFUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": {{paymentId}},\n  \"transactionType\": \"REFUND\",\n  \"paidAmount\": 50.00,\n  \"method\": \"CARD\",\n  \"reference\": \"TXN-REFUND-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment-transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-transactions"
+              ]
+            },
+            "description": "REFUND tipi ödeme işlemi oluşturur."
+          },
+          "response": []
+        },
+        {
+          "name": "PT-03: Process Transaction Result (SUCCESS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Transaction status updated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('SUCCESS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment-transactions/{{transactionId}}/status?status=SUCCESS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-transactions",
+                "{{transactionId}}",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "SUCCESS"
+                }
+              ]
+            },
+            "description": "İşlem sonucunu işler. SUCCESS olursa Payment.paidAmount otomatik güncellenir."
+          },
+          "response": []
+        },
+        {
+          "name": "PT-04: List Transactions by Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment-transactions/payment/{{paymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-transactions",
+                "payment",
+                "{{paymentId}}"
+              ]
+            },
+            "description": "Belirli bir ödemeye ait tüm işlemleri listeler."
+          },
+          "response": []
+        },
+        {
+          "name": "PT-05: Correlate with Wallet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment-transactions/{{transactionId}}/correlate?walletReference=TXN-SPEND-001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-transactions",
+                "{{transactionId}}",
+                "correlate"
+              ],
+              "query": [
+                {
+                  "key": "walletReference",
+                  "value": "TXN-SPEND-001"
+                }
+              ]
+            },
+            "description": "Ödeme işlemini wallet hareketi ile ilişkilendirir."
+          },
+          "response": []
+        }
+      ],
+      "description": "Payment Transaction modülü - Ödeme işlemleri"
+    },
+    {
+      "name": "6. Payment Transaction Fee",
+      "item": [
+        {
+          "name": "PF-01: Create Transaction Fee",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Fee created\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.feeType).to.eql('GATEWAY_FEE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentTransactionId\": {{transactionId}},\n  \"feeType\": \"GATEWAY_FEE\",\n  \"amount\": 2.50,\n  \"description\": \"Gateway ücreti\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment-transaction-fees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-transaction-fees"
+              ]
+            },
+            "description": "Ödeme işlemi için ücret kaydı oluşturur."
+          },
+          "response": []
+        },
+        {
+          "name": "PF-02: List Fees by Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment-transaction-fees/transaction/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-transaction-fees",
+                "transaction",
+                "{{transactionId}}"
+              ]
+            },
+            "description": "Belirli bir işleme ait tüm ücretleri listeler."
+          },
+          "response": []
+        },
+        {
+          "name": "PF-03: Total Fees by Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is a number\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(typeof jsonData).to.eql('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment-transaction-fees/payment/{{paymentId}}/total",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-transaction-fees",
+                "payment",
+                "{{paymentId}}",
+                "total"
+              ]
+            },
+            "description": "Bir ödeme için toplam ücret tutarını döner."
+          },
+          "response": []
+        }
+      ],
+      "description": "Payment Transaction Fee modülü - Ödeme işlemi ücretleri"
+    },
+    {
+      "name": "7. Order Payment Allocation",
+      "item": [
+        {
+          "name": "OPA-01: Create Allocation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Allocation created\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData.orderId).to.eql(1001);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 1001,\n  \"paymentId\": {{paymentId}},\n  \"allocatedAmount\": 250.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/order-payment-allocations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "order-payment-allocations"
+              ]
+            },
+            "description": "Ödemeyi sipariş ile ilişkilendirir."
+          },
+          "response": []
+        },
+        {
+          "name": "OPA-02: List Allocations by Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/order-payment-allocations/order/1001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "order-payment-allocations",
+                "order",
+                "1001"
+              ]
+            },
+            "description": "Belirli bir siparişe ait tüm tahsisleri listeler."
+          },
+          "response": []
+        },
+        {
+          "name": "OPA-03: Reallocate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Allocation updated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.orderId).to.eql(1002);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 1002,\n  \"paymentId\": {{paymentId}},\n  \"allocatedAmount\": 250.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/order-payment-allocations/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "order-payment-allocations",
+                "1"
+              ]
+            },
+            "description": "Mevcut tahsisi yeniden düzenler."
+          },
+          "response": []
+        }
+      ],
+      "description": "Order Payment Allocation modülü - Sipariş-ödeme ilişkilendirme"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api",
+      "type": "string"
+    }
+  ]
+}

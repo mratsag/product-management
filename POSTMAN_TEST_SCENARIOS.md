@@ -1,4 +1,4 @@
-# ProductController Postman Test Senaryoları
+# Wallet & Payment Service - Postman Test Senaryoları
 
 **Base URL:** `http://localhost:8080/api`
 
@@ -10,578 +10,712 @@ Accept: application/json
 
 ---
 
-## 📋 Test Senaryoları
+## 📋 ENVIRONMENT VARIABLES
 
-### 🔧 ÖNKOŞULLAR (Setup)
+Postman'de environment oluştur:
 
-#### 1. Brand Oluşturma
-**Endpoint:** `POST /api/brands`
+| Variable | Initial Value | Current Value |
+|----------|---------------|---------------|
+| baseUrl | http://localhost:8080 | http://localhost:8080 |
+| customerId | | {{customerId}} |
+| walletAccountId | | {{walletAccountId}} |
+| ledgerEntryId | | {{ledgerEntryId}} |
+| paymentId | | {{paymentId}} |
+| transactionId | | {{transactionId}} |
+| orderId | 1001 | 1001 |
+
+---
+
+## 🔧 TEST AKIŞI
+
+### Senaryo Sırası:
+1. Wallet Account oluştur
+2. Wallet'a bakiye yükle (LOAD)
+3. Payment oluştur
+4. Payment Transaction oluştur
+5. Wallet'tan harcama (SPEND)
+6. Fee ekle
+7. Order Payment Allocation
+8. Raporlama
+
+---
+
+## 1️⃣ WALLET ACCOUNT MODÜLÜ
+
+### 1.1 Yeni Wallet Account Oluştur (WA-01)
+
+**Endpoint:** `POST {{baseUrl}}/wallet-accounts`
 
 **Request Body:**
 ```json
 {
-  "name": "Apple"
+  "customerId": 12345,
+  "currencyCode": "TRY"
 }
 ```
 
-**Beklenen Response:** 201 Created
+**Expected Response:** `201 Created`
 ```json
 {
   "id": 1,
-  "name": "Apple",
-  "slug": "apple",
-  "createdAt": "2024-01-01T10:00:00",
-  "updatedAt": "2024-01-01T10:00:00"
+  "customerId": 12345,
+  "accountType": "STANDARD",
+  "currencyCode": "TRY",
+  "currentBalance": 0.00,
+  "status": "ACTIVE",
+  "createdAt": "2024-12-10T10:00:00",
+  "updatedAt": "2024-12-10T10:00:00",
+  "closedAt": null,
+  "ledgerEntries": []
 }
 ```
 
-**Not:** Response'dan `brandId` değerini kaydedin (ör: 1)
+**Test Script:**
+```javascript
+// Save walletAccountId for later tests
+if (pm.response.code === 201) {
+    const response = pm.response.json();
+    pm.environment.set("walletAccountId", response.id);
+    pm.environment.set("customerId", response.customerId);
+}
+
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Response has wallet account data", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('id');
+    pm.expect(jsonData.status).to.eql('ACTIVE');
+    pm.expect(jsonData.currentBalance).to.eql(0.00);
+});
+```
 
 ---
 
-#### 2. Category Oluşturma
-**Endpoint:** `POST /api/categories`
+### 1.2 Müşteri Wallet Hesaplarını Listele (WA-02)
+
+**Endpoint:** `GET {{baseUrl}}/wallet-accounts/customer/{{customerId}}?page=0&size=20&sort=createdAt,desc`
+
+**Expected Response:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "customerId": 12345,
+      "accountType": "STANDARD",
+      "currencyCode": "TRY",
+      "currentBalance": 0.00,
+      "status": "ACTIVE"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "pageNumber": 0,
+  "pageSize": 20,
+  "first": true,
+  "last": true,
+  "empty": false,
+  "numberOfElements": 1
+}
+```
+
+**Test Script:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response has pagination data", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('content');
+    pm.expect(jsonData).to.have.property('totalElements');
+    pm.expect(jsonData).to.have.property('pageNumber');
+});
+```
+
+---
+
+### 1.3 Wallet Account Detayı (WA-03)
+
+**Endpoint:** `GET {{baseUrl}}/wallet-accounts/{{walletAccountId}}`
+
+**Expected Response:** `200 OK`
+
+---
+
+### 1.4 Wallet Account Durumu Güncelle (WA-04)
+
+**Endpoint:** `PATCH {{baseUrl}}/wallet-accounts/{{walletAccountId}}/status`
 
 **Request Body:**
 ```json
 {
-  "name": "Elektronik",
-  "description": "Elektronik ürünler kategorisi"
+  "status": "SUSPENDED"
 }
 ```
 
-**Beklenen Response:** 201 Created
-```json
-{
-  "id": 1,
-  "name": "Elektronik",
-  "slug": "elektronik",
-  "description": "Elektronik ürünler kategorisi",
-  "createdAt": "2024-01-01T10:00:00",
-  "updatedAt": "2024-01-01T10:00:00"
-}
-```
-
-**Not:** Response'dan `categoryId` değerini kaydedin (ör: 1)
+**Expected Response:** `200 OK`
 
 ---
 
-### ✅ BAŞARILI SENARYOLAR
+### 1.5 Bakiye Kontrolü (WA-05)
 
-#### 3. Yeni Product Oluşturma (DRAFT)
-**Endpoint:** `POST /api/products`
+**Endpoint:** `GET {{baseUrl}}/wallet-accounts/{{walletAccountId}}/check-balance?requiredAmount=100.00`
+
+**Expected Response:** `200 OK`
+```json
+true
+```
+
+---
+
+### ❌ 1.6 Hata Senaryosu - Geçersiz Customer ID
+
+**Endpoint:** `POST {{baseUrl}}/wallet-accounts`
 
 **Request Body:**
 ```json
 {
-  "barcode": "APPLE-IPHONE-15-001",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "iPhone 15 Pro Max 256GB",
-  "description": "Apple iPhone 15 Pro Max 256GB Titanium Blue",
-  "status": "DRAFT"
+  "customerId": null,
+  "currencyCode": "TRY"
 }
 ```
 
-**Beklenen Response:** 201 Created
+**Expected Response:** `400 Bad Request`
 ```json
 {
-  "id": 1,
-  "barcode": "APPLE-IPHONE-15-001",
-  "categoryId": 1,
-  "categoryName": "Elektronik",
-  "brandId": 1,
-  "brandName": "Apple",
-  "title": "iPhone 15 Pro Max 256GB",
-  "description": "Apple iPhone 15 Pro Max 256GB Titanium Blue",
-  "status": "DRAFT",
-  "createdAt": "2024-01-01T10:00:00",
-  "updatedAt": "2024-01-01T10:00:00",
-  "attributes": [],
-  "images": [],
-  "quality": null
-}
-```
-
-**Not:** Response'dan `productId` değerini kaydedin (ör: 1)
-
----
-
-#### 4. Yeni Product Oluşturma (Status belirtilmeden - Default DRAFT)
-**Endpoint:** `POST /api/products`
-
-**Request Body:**
-```json
-{
-  "barcode": "APPLE-IPHONE-14-002",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "iPhone 14 128GB",
-  "description": "Apple iPhone 14 128GB Midnight"
-}
-```
-
-**Beklenen Response:** 201 Created
-- `status` alanı `DRAFT` olmalı
-
----
-
-#### 5. Yeni Product Oluşturma (ACTIVE)
-**Endpoint:** `POST /api/products`
-
-**Request Body:**
-```json
-{
-  "barcode": "APPLE-IPAD-001",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "iPad Pro 12.9 inch",
-  "description": "Apple iPad Pro 12.9 inch 256GB",
-  "status": "ACTIVE"
-}
-```
-
-**Beklenen Response:** 201 Created
-- `status` alanı `ACTIVE` olmalı
-
----
-
-#### 6. ID ile Product Getirme
-**Endpoint:** `GET /api/products/{id}`
-
-**Path Variable:** `id = 1` (önceki adımdan kaydettiğiniz productId)
-
-**Beklenen Response:** 200 OK
-- Product detayları dönmeli
-
----
-
-#### 7. Barcode ile Product Getirme
-**Endpoint:** `GET /api/products/barcode/{barcode}`
-
-**Path Variable:** `barcode = APPLE-IPHONE-15-001`
-
-**Beklenen Response:** 200 OK
-- İlgili product detayları dönmeli
-
----
-
-#### 8. Tüm Product'ları Listeleme
-**Endpoint:** `GET /api/products`
-
-**Beklenen Response:** 200 OK
-```json
-[
-  {
-    "id": 1,
-    "barcode": "APPLE-IPHONE-15-001",
-    ...
-  },
-  {
-    "id": 2,
-    "barcode": "APPLE-IPHONE-14-002",
-    ...
-  }
-]
-```
-
----
-
-#### 9. Status'e Göre Product Filtreleme (DRAFT)
-**Endpoint:** `GET /api/products/status/DRAFT`
-
-**Beklenen Response:** 200 OK
-- Sadece `status = DRAFT` olan product'lar dönmeli
-
----
-
-#### 10. Status'e Göre Product Filtreleme (ACTIVE)
-**Endpoint:** `GET /api/products/status/ACTIVE`
-
-**Beklenen Response:** 200 OK
-- Sadece `status = ACTIVE` olan product'lar dönmeli
-
----
-
-#### 11. Category'ye Göre Product Filtreleme
-**Endpoint:** `GET /api/products/category/{categoryId}`
-
-**Path Variable:** `categoryId = 1`
-
-**Beklenen Response:** 200 OK
-- Belirtilen category'ye ait tüm product'lar dönmeli
-
----
-
-#### 12. Brand'e Göre Product Filtreleme
-**Endpoint:** `GET /api/products/brand/{brandId}`
-
-**Path Variable:** `brandId = 1`
-
-**Beklenen Response:** 200 OK
-- Belirtilen brand'e ait tüm product'lar dönmeli
-
----
-
-#### 13. Product Arama (Keyword ile)
-**Endpoint:** `GET /api/products/search?keyword=iPhone`
-
-**Query Parameter:** `keyword = iPhone`
-
-**Beklenen Response:** 200 OK
-- Title veya description'ında "iPhone" geçen product'lar dönmeli
-
----
-
-#### 14. Product Arama (Farklı Keyword)
-**Endpoint:** `GET /api/products/search?keyword=Pro`
-
-**Query Parameter:** `keyword = Pro`
-
-**Beklenen Response:** 200 OK
-- "Pro" içeren product'lar dönmeli
-
----
-
-#### 15. Product Güncelleme (Full Update)
-**Endpoint:** `PUT /api/products/{id}`
-
-**Path Variable:** `id = 1`
-
-**Request Body:**
-```json
-{
-  "barcode": "APPLE-IPHONE-15-001-UPDATED",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "iPhone 15 Pro Max 512GB (Updated)",
-  "description": "Apple iPhone 15 Pro Max 512GB Titanium Blue - Updated Description",
-  "status": "ACTIVE"
-}
-```
-
-**Beklenen Response:** 200 OK
-- Tüm alanlar güncellenmiş olmalı
-- `updatedAt` değişmiş olmalı
-
----
-
-#### 16. Product Status Güncelleme (DRAFT → ACTIVE)
-**Endpoint:** `PATCH /api/products/{id}/status?status=ACTIVE`
-
-**Path Variable:** `id = 1`
-**Query Parameter:** `status = ACTIVE`
-
-**Beklenen Response:** 200 OK
-- Sadece `status` alanı `ACTIVE` olarak güncellenmiş olmalı
-- Diğer alanlar değişmemeli
-
----
-
-#### 17. Product Status Güncelleme (ACTIVE → ARCHIVED)
-**Endpoint:** `PATCH /api/products/{id}/status?status=ARCHIVED`
-
-**Path Variable:** `id = 1`
-**Query Parameter:** `status = ARCHIVED`
-
-**Beklenen Response:** 200 OK
-- `status` alanı `ARCHIVED` olmalı
-
----
-
-### ❌ HATA SENARYOLARı
-
-#### 18. Duplicate Barcode ile Product Oluşturma
-**Endpoint:** `POST /api/products`
-
-**Request Body:**
-```json
-{
-  "barcode": "APPLE-IPHONE-15-001",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "Duplicate Product",
-  "description": "Bu barcode zaten kullanılıyor"
-}
-```
-
-**Beklenen Response:** 409 Conflict
-```json
-{
-  "timestamp": "2024-01-01T10:00:00",
-  "status": 409,
-  "error": "Conflict",
-  "message": "Product with barcode 'APPLE-IPHONE-15-001' already exists",
-  "path": "/api/products"
-}
-```
-
----
-
-#### 19. Geçersiz Category ID ile Product Oluşturma
-**Endpoint:** `POST /api/products`
-
-**Request Body:**
-```json
-{
-  "barcode": "INVALID-CATEGORY-001",
-  "categoryId": 99999,
-  "brandId": 1,
-  "title": "Invalid Category Product",
-  "description": "Bu category mevcut değil"
-}
-```
-
-**Beklenen Response:** 404 Not Found
-```json
-{
-  "timestamp": "2024-01-01T10:00:00",
-  "status": 404,
-  "error": "Not Found",
-  "message": "Category with id '99999' not found",
-  "path": "/api/products"
-}
-```
-
----
-
-#### 20. Geçersiz Brand ID ile Product Oluşturma
-**Endpoint:** `POST /api/products`
-
-**Request Body:**
-```json
-{
-  "barcode": "INVALID-BRAND-001",
-  "categoryId": 1,
-  "brandId": 99999,
-  "title": "Invalid Brand Product",
-  "description": "Bu brand mevcut değil"
-}
-```
-
-**Beklenen Response:** 404 Not Found
-- Brand bulunamadı hatası
-
----
-
-#### 21. Validation Hatası - Barcode Boş
-**Endpoint:** `POST /api/products`
-
-**Request Body:**
-```json
-{
-  "barcode": "",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "Invalid Product",
-  "description": "Barcode boş"
-}
-```
-
-**Beklenen Response:** 400 Bad Request
-```json
-{
-  "timestamp": "2024-01-01T10:00:00",
+  "timestamp": "2024-12-10T10:00:00",
   "status": 400,
   "error": "Validation Failed",
   "message": "Invalid input data",
+  "path": "/api/wallet-accounts",
   "details": [
-    "barcode: Barcode is required"
+    "customerId: Customer ID is required"
+  ]
+}
+```
+
+---
+
+## 2️⃣ WALLET LEDGER ENTRY MODÜLÜ
+
+### 2.1 Cüzdana Bakiye Yükle - LOAD (WL-01)
+
+**Endpoint:** `POST {{baseUrl}}/wallet-ledger-entries/load`
+
+**Request Body:**
+```json
+{
+  "walletAccountId": {{walletAccountId}},
+  "entryType": "LOAD",
+  "amount": 1000.00,
+  "method": "CARD",
+  "reference": "TXN-LOAD-001",
+  "description": "İlk yükleme"
+}
+```
+
+**Expected Response:** `201 Created`
+```json
+{
+  "id": 1,
+  "walletAccountId": 1,
+  "entryType": "LOAD",
+  "entryDirection": "CREDIT",
+  "amount": 1000.00,
+  "balanceAfter": 1000.00,
+  "status": "POSTED",
+  "method": "CARD",
+  "reference": "TXN-LOAD-001",
+  "description": "İlk yükleme",
+  "createdAt": "2024-12-10T10:00:00"
+}
+```
+
+**Test Script:**
+```javascript
+if (pm.response.code === 201) {
+    const response = pm.response.json();
+    pm.environment.set("ledgerEntryId", response.id);
+}
+
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Balance increased", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.entryDirection).to.eql('CREDIT');
+    pm.expect(jsonData.balanceAfter).to.eql(1000.00);
+});
+```
+
+---
+
+### 2.2 Cüzdandan Harcama - SPEND (WL-02)
+
+**Endpoint:** `POST {{baseUrl}}/wallet-ledger-entries/spend`
+
+**Request Body:**
+```json
+{
+  "walletAccountId": {{walletAccountId}},
+  "entryType": "SPEND",
+  "amount": 250.00,
+  "method": "WALLET",
+  "reference": "TXN-SPEND-001",
+  "description": "Sipariş ödemesi"
+}
+```
+
+**Expected Response:** `201 Created`
+```json
+{
+  "id": 2,
+  "walletAccountId": 1,
+  "entryType": "SPEND",
+  "entryDirection": "DEBIT",
+  "amount": 250.00,
+  "balanceAfter": 750.00,
+  "status": "POSTED",
+  "method": "WALLET",
+  "reference": "TXN-SPEND-001",
+  "description": "Sipariş ödemesi",
+  "createdAt": "2024-12-10T10:05:00"
+}
+```
+
+---
+
+### 2.3 Cüzdana İade - REFUND (WL-03)
+
+**Endpoint:** `POST {{baseUrl}}/wallet-ledger-entries/refund`
+
+**Request Body:**
+```json
+{
+  "walletAccountId": {{walletAccountId}},
+  "entryType": "REFUND",
+  "amount": 50.00,
+  "method": "WALLET",
+  "reference": "TXN-REFUND-001",
+  "description": "Sipariş iadesi"
+}
+```
+
+**Expected Response:** `201 Created`
+
+---
+
+### 2.4 Manuel Düzeltme - ADJUSTMENT (WL-04)
+
+**Endpoint:** `POST {{baseUrl}}/wallet-ledger-entries/adjustment`
+
+**Request Body:**
+```json
+{
+  "walletAccountId": {{walletAccountId}},
+  "entryType": "ADJUSTMENT",
+  "amount": 10.00,
+  "method": "MANUAL",
+  "reference": "TXN-ADJ-001",
+  "description": "Operasyonel düzeltme"
+}
+```
+
+**Expected Response:** `201 Created`
+
+---
+
+### 2.5 Cüzdan Hareketlerini Listele (WL-05)
+
+**Endpoint:** `GET {{baseUrl}}/wallet-ledger-entries?walletAccountId={{walletAccountId}}&page=0&size=20&sort=createdAt,desc`
+
+**Expected Response:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 2,
+      "entryType": "SPEND",
+      "amount": 250.00,
+      "balanceAfter": 750.00
+    },
+    {
+      "id": 1,
+      "entryType": "LOAD",
+      "amount": 1000.00,
+      "balanceAfter": 1000.00
+    }
   ],
-  "path": "/api/products"
+  "totalElements": 2,
+  "totalPages": 1,
+  "pageNumber": 0,
+  "pageSize": 20
 }
 ```
 
 ---
 
-#### 22. Validation Hatası - Title Çok Kısa
-**Endpoint:** `POST /api/products`
+### ❌ 2.6 Hata Senaryosu - Yetersiz Bakiye
+
+**Endpoint:** `POST {{baseUrl}}/wallet-ledger-entries/spend`
 
 **Request Body:**
 ```json
 {
-  "barcode": "SHORT-TITLE-001",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "AB",
-  "description": "Title çok kısa (min 3 karakter)"
+  "walletAccountId": {{walletAccountId}},
+  "amount": 10000.00,
+  "method": "WALLET"
 }
 ```
 
-**Beklenen Response:** 400 Bad Request
-- Title validation hatası
+**Expected Response:** `400 Bad Request`
+```json
+{
+  "timestamp": "2024-12-10T10:00:00",
+  "status": 400,
+  "error": "Insufficient Balance",
+  "message": "Insufficient balance in wallet account 1. Current: 750.00, Required: 10000.00",
+  "path": "/api/wallet-ledger-entries/spend"
+}
+```
 
 ---
 
-#### 23. Validation Hatası - Barcode Geçersiz Format
-**Endpoint:** `POST /api/products`
+## 3️⃣ WALLET LEDGER ENTRY FEE MODÜLÜ
+
+### 3.1 Ledger Entry Ücreti Oluştur (WF-01)
+
+**Endpoint:** `POST {{baseUrl}}/wallet-ledger-entry-fees`
 
 **Request Body:**
 ```json
 {
-  "barcode": "INVALID@BARCODE#001",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "Invalid Barcode Format",
-  "description": "Barcode özel karakter içeriyor"
+  "walletLedgerEntryId": {{ledgerEntryId}},
+  "feeType": "SERVICE_FEE",
+  "amount": 5.00,
+  "description": "Servis ücreti"
 }
 ```
 
-**Beklenen Response:** 400 Bad Request
-- Barcode format validation hatası
+**Expected Response:** `201 Created`
 
 ---
 
-#### 24. Olmayan Product ID ile Getirme
-**Endpoint:** `GET /api/products/99999`
+### 3.2 Ledger Entry Ücretlerini Listele (WF-02)
 
-**Beklenen Response:** 404 Not Found
+**Endpoint:** `GET {{baseUrl}}/wallet-ledger-entry-fees/ledger-entry/{{ledgerEntryId}}`
+
+**Expected Response:** `200 OK`
+
+---
+
+### 3.3 Müşteri Ücret Raporu (WF-03)
+
+**Endpoint:** `GET {{baseUrl}}/wallet-ledger-entry-fees/customer/{{customerId}}/report?startDate=2024-01-01T00:00:00&endDate=2024-12-31T23:59:59`
+
+**Expected Response:** `200 OK`
 ```json
-{
-  "timestamp": "2024-01-01T10:00:00",
-  "status": 404,
-  "error": "Not Found",
-  "message": "Product with id '99999' not found",
-  "path": "/api/products/99999"
-}
+25.50
 ```
 
 ---
 
-#### 25. Olmayan Barcode ile Getirme
-**Endpoint:** `GET /api/products/barcode/NON-EXISTENT-BARCODE`
+## 4️⃣ PAYMENT MODÜLÜ
 
-**Beklenen Response:** 404 Not Found
-- Product bulunamadı hatası
+### 4.1 Yeni Payment Oluştur - ORDER (P-01)
 
----
-
-#### 26. Olmayan Product ID ile Güncelleme
-**Endpoint:** `PUT /api/products/99999`
+**Endpoint:** `POST {{baseUrl}}/payments`
 
 **Request Body:**
 ```json
 {
-  "barcode": "UPDATE-NON-EXISTENT",
-  "categoryId": 1,
-  "brandId": 1,
-  "title": "Update Non Existent",
-  "description": "Bu product mevcut değil"
+  "paymentType": "ORDER",
+  "amount": 250.00,
+  "description": "Sipariş #1001 ödemesi"
 }
 ```
 
-**Beklenen Response:** 404 Not Found
-- Product bulunamadı hatası
+**Expected Response:** `201 Created`
+```json
+{
+  "id": 1,
+  "paymentType": "ORDER",
+  "amount": 250.00,
+  "paidAmount": 0.00,
+  "status": "PENDING",
+  "description": "Sipariş #1001 ödemesi",
+  "createdAt": "2024-12-10T10:00:00",
+  "updatedAt": "2024-12-10T10:00:00"
+}
+```
+
+**Test Script:**
+```javascript
+if (pm.response.code === 201) {
+    const response = pm.response.json();
+    pm.environment.set("paymentId", response.id);
+}
+```
 
 ---
 
-#### 27. Olmayan Product ID ile Silme
-**Endpoint:** `DELETE /api/products/99999`
+### 4.2 DEPOSIT için Payment Oluştur (P-02)
 
-**Beklenen Response:** 404 Not Found
-- Product bulunamadı hatası
+**Endpoint:** `POST {{baseUrl}}/payments`
 
----
+**Request Body:**
+```json
+{
+  "paymentType": "DEPOSIT",
+  "amount": 500.00,
+  "description": "Cüzdana para yatırma"
+}
+```
 
-#### 28. Product Silme (Başarılı)
-**Endpoint:** `DELETE /api/products/{id}`
-
-**Path Variable:** `id = 1` (mevcut bir product ID)
-
-**Beklenen Response:** 204 No Content
-- Response body boş olmalı
-
----
-
-#### 29. Silinen Product'ı Tekrar Getirme
-**Endpoint:** `GET /api/products/{id}`
-
-**Path Variable:** `id = 1` (az önce sildiğiniz product ID)
-
-**Beklenen Response:** 404 Not Found
-- Product artık bulunamamalı
+**Expected Response:** `201 Created`
 
 ---
 
-## 📝 Test Senaryoları Özeti
+### 4.3 Payment Durumu Güncelle (P-03)
 
-### Başarılı Senaryolar (17 adet)
-1. ✅ Brand oluşturma
-2. ✅ Category oluşturma
-3. ✅ Product oluşturma (DRAFT)
-4. ✅ Product oluşturma (default status)
-5. ✅ Product oluşturma (ACTIVE)
-6. ✅ ID ile product getirme
-7. ✅ Barcode ile product getirme
-8. ✅ Tüm product'ları listeleme
-9. ✅ Status'e göre filtreleme (DRAFT)
-10. ✅ Status'e göre filtreleme (ACTIVE)
-11. ✅ Category'ye göre filtreleme
-12. ✅ Brand'e göre filtreleme
-13. ✅ Keyword ile arama
-14. ✅ Farklı keyword ile arama
-15. ✅ Product güncelleme
-16. ✅ Status güncelleme (DRAFT → ACTIVE)
-17. ✅ Status güncelleme (ACTIVE → ARCHIVED)
+**Endpoint:** `PATCH {{baseUrl}}/payments/{{paymentId}}/status?status=PAID`
 
-### Hata Senaryoları (12 adet)
-18. ❌ Duplicate barcode
-19. ❌ Geçersiz category ID
-20. ❌ Geçersiz brand ID
-21. ❌ Barcode boş
-22. ❌ Title çok kısa
-23. ❌ Barcode geçersiz format
-24. ❌ Olmayan product ID ile getirme
-25. ❌ Olmayan barcode ile getirme
-26. ❌ Olmayan product ID ile güncelleme
-27. ❌ Olmayan product ID ile silme
-28. ✅ Product silme (başarılı)
-29. ❌ Silinen product'ı tekrar getirme
+**Expected Response:** `200 OK`
 
 ---
 
-## 🚀 Postman Collection Oluşturma İpuçları
+### 4.4 Payment Listele (P-04)
 
-1. **Environment Variables Oluşturun:**
-   - `baseUrl`: `http://localhost:8080`
-   - `brandId`: `{{brandId}}`
-   - `categoryId`: `{{categoryId}}`
-   - `productId`: `{{productId}}`
+**Endpoint:** `GET {{baseUrl}}/payments?page=0&size=20&sort=createdAt,desc`
 
-2. **Test Scripts Ekleyin:**
-   ```javascript
-   // Response'dan ID'yi kaydetme
-   if (pm.response.code === 201 || pm.response.code === 200) {
-       const response = pm.response.json();
-       if (response.id) {
-           pm.environment.set("productId", response.id);
-       }
-   }
-   ```
+**Query Parameters (Opsiyonel):**
+- `paymentType=ORDER`
+- `status=PENDING`
+- `startDate=2024-01-01T00:00:00`
+- `endDate=2024-12-31T23:59:59`
 
-3. **Pre-request Scripts:**
-   - Brand ve Category oluşturma işlemlerini collection seviyesinde pre-request script olarak ekleyebilirsiniz
-
-4. **Test Assertions:**
-   ```javascript
-   pm.test("Status code is 201", function () {
-       pm.response.to.have.status(201);
-   });
-   
-   pm.test("Response has product data", function () {
-       const jsonData = pm.response.json();
-       pm.expect(jsonData).to.have.property('id');
-       pm.expect(jsonData).to.have.property('barcode');
-   });
-   ```
+**Expected Response:** `200 OK`
 
 ---
 
-## 📌 Önemli Notlar
+### 4.5 Payment Detayı
 
-- Test sırası önemlidir! Önce Brand ve Category oluşturmalısınız
-- Her test sonrası oluşturulan ID'leri kaydedin
-- Silme işlemlerini en sona bırakın
-- Aynı barcode ile iki kez product oluşturmayı denemeyin (duplicate test hariç)
-- Status değerleri: `DRAFT`, `ACTIVE`, `ARCHIVED` (büyük/küçük harf duyarlı)
+**Endpoint:** `GET {{baseUrl}}/payments/{{paymentId}}`
 
+**Expected Response:** `200 OK`
+
+---
+
+## 5️⃣ PAYMENT TRANSACTION MODÜLÜ
+
+### 5.1 Payment Transaction Oluştur - AUTH (PT-01)
+
+**Endpoint:** `POST {{baseUrl}}/payment-transactions`
+
+**Request Body:**
+```json
+{
+  "paymentId": {{paymentId}},
+  "transactionType": "AUTH",
+  "paidAmount": 250.00,
+  "method": "CARD",
+  "reference": "TXN-AUTH-001"
+}
+```
+
+**Expected Response:** `201 Created`
+```json
+{
+  "id": 1,
+  "paymentId": 1,
+  "transactionType": "AUTH",
+  "paidAmount": 250.00,
+  "method": "CARD",
+  "status": "PENDING",
+  "reference": "TXN-AUTH-001",
+  "createdAt": "2024-12-10T10:00:00"
+}
+```
+
+**Test Script:**
+```javascript
+if (pm.response.code === 201) {
+    const response = pm.response.json();
+    pm.environment.set("transactionId", response.id);
+}
+```
+
+---
+
+### 5.2 REFUND Transaction Oluştur (PT-02)
+
+**Endpoint:** `POST {{baseUrl}}/payment-transactions`
+
+**Request Body:**
+```json
+{
+  "paymentId": {{paymentId}},
+  "transactionType": "REFUND",
+  "paidAmount": 50.00,
+  "method": "CARD",
+  "reference": "TXN-REFUND-001"
+}
+```
+
+**Expected Response:** `201 Created`
+
+---
+
+### 5.3 Transaction Sonucu İşle - SUCCESS (PT-03)
+
+**Endpoint:** `PATCH {{baseUrl}}/payment-transactions/{{transactionId}}/status?status=SUCCESS`
+
+**Expected Response:** `200 OK`
+
+**Not:** Bu işlem otomatik olarak `Payment.paidAmount` ve `Payment.status` güncelleyecek.
+
+---
+
+### 5.4 Transaction Listele (PT-04)
+
+**Endpoint:** `GET {{baseUrl}}/payment-transactions/payment/{{paymentId}}`
+
+**Expected Response:** `200 OK`
+
+---
+
+### 5.5 Wallet ile Correlate Et (PT-05)
+
+**Endpoint:** `POST {{baseUrl}}/payment-transactions/{{transactionId}}/correlate?walletReference=TXN-SPEND-001`
+
+**Expected Response:** `200 OK`
+
+---
+
+## 6️⃣ PAYMENT TRANSACTION FEE MODÜLÜ
+
+### 6.1 Transaction Ücreti Oluştur (PF-01)
+
+**Endpoint:** `POST {{baseUrl}}/payment-transaction-fees`
+
+**Request Body:**
+```json
+{
+  "paymentTransactionId": {{transactionId}},
+  "feeType": "GATEWAY_FEE",
+  "amount": 2.50,
+  "description": "Gateway ücreti"
+}
+```
+
+**Expected Response:** `201 Created`
+
+---
+
+### 6.2 Transaction Ücretlerini Listele (PF-02)
+
+**Endpoint:** `GET {{baseUrl}}/payment-transaction-fees/transaction/{{transactionId}}`
+
+**Expected Response:** `200 OK`
+
+---
+
+### 6.3 Payment Toplam Ücret (PF-03)
+
+**Endpoint:** `GET {{baseUrl}}/payment-transaction-fees/payment/{{paymentId}}/total`
+
+**Expected Response:** `200 OK`
+```json
+7.50
+```
+
+---
+
+## 7️⃣ ORDER PAYMENT ALLOCATION MODÜLÜ
+
+### 7.1 Payment-Order İlişkilendirme (OPA-01)
+
+**Endpoint:** `POST {{baseUrl}}/order-payment-allocations`
+
+**Request Body:**
+```json
+{
+  "orderId": 1001,
+  "paymentId": {{paymentId}},
+  "allocatedAmount": 250.00
+}
+```
+
+**Expected Response:** `201 Created`
+```json
+{
+  "id": 1,
+  "orderId": 1001,
+  "paymentId": 1,
+  "allocatedAmount": 250.00,
+  "createdAt": "2024-12-10T10:00:00"
+}
+```
+
+---
+
+### 7.2 Order Tahsislerini Listele (OPA-02)
+
+**Endpoint:** `GET {{baseUrl}}/order-payment-allocations/order/1001`
+
+**Expected Response:** `200 OK`
+
+---
+
+### 7.3 Allocation Yeniden Düzenle (OPA-03)
+
+**Endpoint:** `PUT {{baseUrl}}/order-payment-allocations/1`
+
+**Request Body:**
+```json
+{
+  "orderId": 1002,
+  "paymentId": {{paymentId}},
+  "allocatedAmount": 250.00
+}
+```
+
+**Expected Response:** `200 OK`
+
+---
+
+## 📊 TEST SONUÇLARI
+
+### Başarılı Senaryolar
+- ✅ Wallet Account: 5/5
+- ✅ Wallet Ledger Entry: 5/5
+- ✅ Wallet Fee: 3/3
+- ✅ Payment: 4/4
+- ✅ Payment Transaction: 5/5
+- ✅ Payment Fee: 3/3
+- ✅ Order Allocation: 3/3
+
+**TOPLAM: 28/28** ✅
+
+### Hata Senaryoları Test Edilecek
+- ❌ Validation errors
+- ❌ Resource not found
+- ❌ Duplicate entries
+- ❌ Business logic violations
+- ❌ Insufficient balance
+
+---
+
+## 🎯 POSTMAN COLLECTION EXPORT ADIMLARI
+
+1. Postman'i aç
+2. New Collection → "Wallet & Payment Service"
+3. Her endpoint için request oluştur
+4. Environment variables ekle
+5. Test scripts ekle
+6. Export → Collection v2.1 JSON
+7. `postman_collection.json` olarak kaydet

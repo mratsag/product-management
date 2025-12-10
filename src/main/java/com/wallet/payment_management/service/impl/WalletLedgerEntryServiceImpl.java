@@ -8,6 +8,7 @@ import com.wallet.payment_management.entity.WalletLedgerEntry;
 import com.wallet.payment_management.enums.WalletLedgerEntryDirectionEnum;
 import com.wallet.payment_management.enums.WalletLedgerEntryStatusEnum;
 import com.wallet.payment_management.enums.WalletLedgerEntryTypeEnum;
+import com.wallet.payment_management.event.BalanceChangedEvent;
 import com.wallet.payment_management.exception.ClosedAccountException;
 import com.wallet.payment_management.exception.InsufficientBalanceException;
 import com.wallet.payment_management.exception.ResourceNotFoundException;
@@ -16,6 +17,7 @@ import com.wallet.payment_management.repository.WalletLedgerEntryRepository;
 import com.wallet.payment_management.service.WalletLedgerEntryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,10 +36,12 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
 
     private final WalletLedgerEntryRepository walletLedgerEntryRepository;
     private final WalletAccountRepository walletAccountRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public WalletLedgerEntryResponse createLoadEntry(WalletLedgerEntryRequest request) {
-        log.info("Creating LOAD entry for wallet account: {}, Amount: {}", request.getWalletAccountId(), request.getAmount());
+        log.info("Creating LOAD entry for wallet account: {}, Amount: {}", request.getWalletAccountId(),
+                request.getAmount());
 
         WalletAccount walletAccount = walletAccountRepository.findById(request.getWalletAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", "id", request.getWalletAccountId()));
@@ -69,12 +73,18 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
         saved = walletLedgerEntryRepository.save(saved);
 
         log.info("LOAD entry created. ID: {}, New balance: {}", saved.getId(), newBalance);
+
+        // Publish balance changed event
+        publishBalanceChangedEvent(walletAccount, saved, request.getAmount(),
+                walletAccount.getCurrentBalance().subtract(request.getAmount()), newBalance);
+
         return mapToResponse(saved);
     }
 
     @Override
     public WalletLedgerEntryResponse createSpendEntry(WalletLedgerEntryRequest request) {
-        log.info("Creating SPEND entry for wallet account: {}, Amount: {}", request.getWalletAccountId(), request.getAmount());
+        log.info("Creating SPEND entry for wallet account: {}, Amount: {}", request.getWalletAccountId(),
+                request.getAmount());
 
         WalletAccount walletAccount = walletAccountRepository.findById(request.getWalletAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", "id", request.getWalletAccountId()));
@@ -114,12 +124,18 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
         saved = walletLedgerEntryRepository.save(saved);
 
         log.info("SPEND entry created. ID: {}, New balance: {}", saved.getId(), newBalance);
+
+        // Publish balance changed event
+        publishBalanceChangedEvent(walletAccount, saved, request.getAmount(),
+                walletAccount.getCurrentBalance().add(request.getAmount()), newBalance);
+
         return mapToResponse(saved);
     }
 
     @Override
     public WalletLedgerEntryResponse createRefundEntry(WalletLedgerEntryRequest request) {
-        log.info("Creating REFUND entry for wallet account: {}, Amount: {}", request.getWalletAccountId(), request.getAmount());
+        log.info("Creating REFUND entry for wallet account: {}, Amount: {}", request.getWalletAccountId(),
+                request.getAmount());
 
         WalletAccount walletAccount = walletAccountRepository.findById(request.getWalletAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", "id", request.getWalletAccountId()));
@@ -151,12 +167,18 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
         saved = walletLedgerEntryRepository.save(saved);
 
         log.info("REFUND entry created. ID: {}, New balance: {}", saved.getId(), newBalance);
+
+        // Publish balance changed event
+        publishBalanceChangedEvent(walletAccount, saved, request.getAmount(),
+                walletAccount.getCurrentBalance().subtract(request.getAmount()), newBalance);
+
         return mapToResponse(saved);
     }
 
     @Override
     public WalletLedgerEntryResponse createAdjustmentEntry(WalletLedgerEntryRequest request) {
-        log.info("Creating ADJUSTMENT entry for wallet account: {}, Amount: {}", request.getWalletAccountId(), request.getAmount());
+        log.info("Creating ADJUSTMENT entry for wallet account: {}, Amount: {}", request.getWalletAccountId(),
+                request.getAmount());
 
         WalletAccount walletAccount = walletAccountRepository.findById(request.getWalletAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("WalletAccount", "id", request.getWalletAccountId()));
@@ -167,7 +189,8 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
 
         // Determine direction based on amount (positive = credit, negative = debit)
         // For adjustment, we'll use the amount sign to determine direction
-        // But in the request, amount is always positive, so we need to check description or add a field
+        // But in the request, amount is always positive, so we need to check
+        // description or add a field
         // For now, we'll default to CREDIT for adjustments (can be changed later)
         WalletLedgerEntryDirectionEnum direction = WalletLedgerEntryDirectionEnum.CREDIT;
         BigDecimal newBalance = walletAccount.getCurrentBalance().add(request.getAmount());
@@ -193,6 +216,11 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
         saved = walletLedgerEntryRepository.save(saved);
 
         log.info("ADJUSTMENT entry created. ID: {}, New balance: {}", saved.getId(), newBalance);
+
+        // Publish balance changed event
+        publishBalanceChangedEvent(walletAccount, saved, request.getAmount(),
+                walletAccount.getCurrentBalance().subtract(request.getAmount()), newBalance);
+
         return mapToResponse(saved);
     }
 
@@ -207,7 +235,8 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
             LocalDateTime endDate,
             Pageable pageable) {
 
-        log.info("Getting ledger entries. walletAccountId: {}, customerId: {}, entryType: {}, status: {}, Page: {}, Size: {}", 
+        log.info(
+                "Getting ledger entries. walletAccountId: {}, customerId: {}, entryType: {}, status: {}, Page: {}, Size: {}",
                 walletAccountId, customerId, entryType, status, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<WalletLedgerEntry> page;
@@ -217,7 +246,8 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
                 page = walletLedgerEntryRepository.findByWalletAccountIdAndEntryTypeAndStatus(
                         walletAccountId, entryType, status, pageable);
             } else if (entryType != null) {
-                page = walletLedgerEntryRepository.findByWalletAccountIdAndEntryType(walletAccountId, entryType, pageable);
+                page = walletLedgerEntryRepository.findByWalletAccountIdAndEntryType(walletAccountId, entryType,
+                        pageable);
             } else if (status != null) {
                 page = walletLedgerEntryRepository.findByWalletAccountIdAndStatus(walletAccountId, status, pageable);
             } else if (startDate != null && endDate != null) {
@@ -269,5 +299,19 @@ public class WalletLedgerEntryServiceImpl implements WalletLedgerEntryService {
                 .description(entry.getDescription())
                 .createdAt(entry.getCreatedAt())
                 .build();
+    }
+
+    private void publishBalanceChangedEvent(WalletAccount wallet, WalletLedgerEntry entry,
+            BigDecimal amount, BigDecimal previousBalance, BigDecimal newBalance) {
+        eventPublisher.publishEvent(new BalanceChangedEvent(
+                wallet.getId(),
+                wallet.getCustomerId(),
+                entry.getId(),
+                entry.getEntryType(),
+                amount,
+                previousBalance,
+                newBalance,
+                wallet.getCurrencyCode(),
+                entry.getDescription()));
     }
 }

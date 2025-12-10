@@ -23,4 +23,6 @@ public interface WalletAccountRepository extends JpaRepository<WalletAccount, Lo
 
     List<WalletAccount> findByCustomerIdAndCreatedAtBetween(
             Long customerId, LocalDateTime startDate, LocalDateTime endDate);
+
+    boolean existsByCustomerIdAndCurrencyCode(Long customerId, String currencyCode);
 }
