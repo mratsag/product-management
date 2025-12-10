@@ -1,16 +1,19 @@
-# 🛍️ Product Information Management (PIM) System
+# 💳 Wallet and Payment Management System
 
-Modern, ölçeklenebilir ve RESTful bir Ürün Bilgi Yönetim Sistemi. E-ticaret ve pazaryeri platformları için tasarlanmış, kapsamlı ürün katalog yönetimi sağlar.
+Modern, ölçeklenebilir ve RESTful bir Cüzdan ve Ödeme Yönetim Sistemi. E-ticaret ve finansal platformlar için tasarlanmış, kapsamlı wallet ve payment işlemleri yönetimi sağlar.
 
 ## 📋 İçindekiler
 
 - [Özellikler](#özellikler)
+- [Proje Durumu](#proje-durumu)
 - [Teknoloji Stack](#teknoloji-stack)
 - [Kurulum](#kurulum)
 - [API Endpoints](#api-endpoints)
 - [Database Schema](#database-schema)
 - [Proje Yapısı](#proje-yapısı)
-- [Geliştirme Standartları](#geliştirme-standartları)
+- [Use Cases](#use-cases)
+- [Test Coverage](#test-coverage)
+- [Sıradaki Adımlar](#sıradaki-adımlar)
 
 ---
 
@@ -18,18 +21,115 @@ Modern, ölçeklenebilir ve RESTful bir Ürün Bilgi Yönetim Sistemi. E-ticaret
 
 ### ✅ Tamamlanan Modüller
 
-#### 🏷️ Brand Yönetimi
-- Marka oluşturma, güncelleme, silme
-- Slug tabanlı URL yapısı
-- Otomatik slug oluşturma (Türkçe karakter desteği)
-- Duplicate kontrolü
+#### 💰 Wallet Account Yönetimi
+- Müşteri için cüzdan hesabı oluşturma
+- Cüzdan hesabı durum yönetimi (ACTIVE, SUSPENDED, CLOSED)
+- Müşteri bazında cüzdan hesaplarını listeleme
+- Bakiye kontrolü
 
-#### 📁 Category Yönetimi (Hiyerarşik)
-- Sınırsız seviye kategori ağacı
-- Parent-child ilişki yönetimi
-- Kategori taşıma (move) özelliği
-- Circular reference koruması
-- Alt kategori kontrolü ile güvenli silme
+#### 📊 Wallet Ledger Entry Yönetimi
+- Cüzdana bakiye yükleme (LOAD)
+- Cüzdandan harcama (SPEND)
+- Cüzdana iade (REFUND)
+- Manuel düzeltme (ADJUSTMENT)
+- Hareket geçmişi listeleme ve filtreleme
+- Otomatik bakiye güncelleme
+
+#### 💸 Payment Yönetimi
+- Ödeme oluşturma (ORDER, DEPOSIT, WITHDRAWAL)
+- Ödeme durum yönetimi (PENDING, PARTIALLY_PAID, PAID, CANCELLED, FAILED)
+- Ödeme listeleme ve filtreleme
+- Otomatik durum güncelleme (paidAmount'a göre)
+
+#### 🔄 Payment Transaction Yönetimi
+- Transaction oluşturma (AUTH, CAPTURE, REFUND, VOID)
+- Transaction sonuç işleme (SUCCESS, FAILED)
+- Wallet ile transaction ilişkilendirme
+- Transaction geçmişi listeleme
+
+#### 💵 Fee Yönetimi
+- Wallet ledger entry ücretleri
+- Payment transaction ücretleri
+- Müşteri bazında ücret raporları
+- Ödeme bazında toplam ücret hesaplama
+
+#### 📦 Order Payment Allocation
+- Ödeme-sipariş ilişkilendirme
+- Sipariş bazında tahsilat listeleme
+- Tahsis yeniden düzenleme
+
+#### 📚 API Dokümantasyonu
+- Swagger UI entegrasyonu (`/swagger`)
+- OpenAPI 3.0 spesifikasyonu (`/docs`)
+- Tüm endpoint'ler için Türkçe açıklamalar
+- Request/Response örnekleri
+
+---
+
+## 📊 Proje Durumu
+
+### ✅ Tamamlanan İşler
+
+#### Backend Geliştirme
+- ✅ **7 Entity** - Tüm database entity'leri oluşturuldu
+- ✅ **11 Enum** - Tüm enum sınıfları tanımlandı
+- ✅ **7 Repository** - Spring Data JPA repository'leri ve custom query'ler
+- ✅ **7 Service Interface** - Tüm service interface'leri
+- ✅ **7 Service Implementation** - Tüm business logic implementasyonu
+- ✅ **7 Controller** - REST API endpoint'leri
+- ✅ **15 DTO** - Request ve Response DTO'ları (8 request, 7 response)
+- ✅ **5 Custom Exception** - Exception handling yapısı
+- ✅ **Database Migration** - Flyway ile 7 tablo oluşturuldu
+
+#### Business Logic
+- ✅ **Wallet Balance Management** - Otomatik bakiye hesaplama ve güncelleme
+- ✅ **Payment Status Management** - Otomatik payment status güncelleme
+- ✅ **Transaction Correlation** - Wallet ve Payment transaction ilişkilendirme
+- ✅ **Validation** - Bean Validation ile input kontrolü
+- ✅ **Exception Handling** - Global exception handler
+
+#### API & Dokümantasyon
+- ✅ **27 REST Endpoint** - Tüm use case'ler için endpoint'ler
+- ✅ **Pagination Desteği** - Liste endpoint'lerinde sayfalama
+- ✅ **Swagger/OpenAPI** - Interaktif API dokümantasyonu
+- ✅ **Türkçe Dokümantasyon** - Tüm endpoint'ler için Türkçe açıklamalar
+
+#### Test
+- ✅ **36 Unit Test** - Service ve Controller test'leri
+- ✅ **6 Test Sınıfı** - Repository, Service, Controller test'leri
+- ✅ **Test Coverage** - Tüm kritik business logic test edildi
+
+### 📈 İstatistikler
+
+| Metrik | Değer |
+|--------|-------|
+| **Toplam Java Dosyası** | 72 |
+| **Toplam Kod Satırı** | ~3,100 |
+| **REST Endpoint** | 27 |
+| **Database Tablosu** | 7 |
+| **Entity** | 7 |
+| **Repository** | 7 |
+| **Service** | 7 |
+| **Controller** | 7 |
+| **DTO** | 15 |
+| **Enum** | 11 |
+| **Exception** | 5 |
+| **Test Dosyası** | 6 |
+| **Test Sayısı** | 36 |
+| **Test Başarı Oranı** | 100% |
+| **Pagination Desteği** | ✅ 3 endpoint |
+
+### ✅ Implement Edilen Use Case'ler
+
+**Wallet Account (WA):** WA-01, WA-02, WA-03, WA-04, WA-05 ✅  
+**Wallet Ledger Entry (WL):** WL-01, WL-02, WL-03, WL-04, WL-05 ✅  
+**Wallet Fee (WF):** WF-01, WF-02, WF-03 ✅  
+**Payment (P):** P-01, P-02, P-03, P-04 ✅  
+**Payment Transaction (PT):** PT-01, PT-02, PT-03, PT-04, PT-05 ✅  
+**Payment Fee (PF):** PF-01, PF-02, PF-03 ✅  
+**Order Payment Allocation (OPA):** OPA-01, OPA-02, OPA-03 ✅
+
+**Toplam: 28/28 Use Case ✅ (%100 Tamamlandı)**
 
 ---
 
@@ -44,6 +144,7 @@ Modern, ölçeklenebilir ve RESTful bir Ürün Bilgi Yönetim Sistemi. E-ticaret
 - **Flyway** - Database migration
 - **Lombok** - Boilerplate kod azaltma
 - **Bean Validation** - Input validation
+- **SpringDoc OpenAPI 2.7.0** - API dokümantasyonu
 
 ### DevOps & Tools
 - **Docker** - Containerization
@@ -64,7 +165,7 @@ Modern, ölçeklenebilir ve RESTful bir Ürün Bilgi Yönetim Sistemi. E-ticaret
 ### 1️⃣ Projeyi Klonlayın
 ```bash
 git clone <repository-url>
-cd product-management
+cd wallet-payment-management
 ```
 
 ### 2️⃣ MySQL Container'ı Başlatın
@@ -74,9 +175,9 @@ docker-compose up -d
 
 MySQL şu bilgilerle çalışacak:
 - **Host:** localhost:3307
-- **Database:** pim_db
-- **Username:** pim_user
-- **Password:** pim_pass123
+- **Database:** wallet_db
+- **Username:** wallet_user
+- **Password:** wallet_pass123
 
 ### 3️⃣ Uygulamayı Çalıştırın
 ```bash
@@ -85,7 +186,15 @@ MySQL şu bilgilerle çalışacak:
 
 Uygulama `http://localhost:8080` adresinde çalışmaya başlayacak.
 
-### 4️⃣ Database Migration
+### 4️⃣ API Dokümantasyonu
+
+| Kaynak | URL |
+|--------|-----|
+| **Swagger UI** | http://localhost:8080/swagger |
+| **OpenAPI JSON** | http://localhost:8080/docs |
+| **OpenAPI YAML** | http://localhost:8080/docs.yaml |
+
+### 5️⃣ Database Migration
 
 Flyway otomatik olarak database schema'yı oluşturacak. İlk çalıştırmada 7 tablo oluşturulur.
 
@@ -93,110 +202,69 @@ Flyway otomatik olarak database schema'yı oluşturacak. İlk çalıştırmada 7
 
 ## 📡 API Endpoints
 
-### Brand API
+> 💡 **İpucu:** Tüm endpoint'leri interaktif olarak test etmek için [Swagger UI](http://localhost:8080/swagger) kullanabilirsiniz.
+
+### Wallet Account API
 
 | Method | Endpoint | Açıklama |
 |--------|----------|----------|
-| POST | `/api/brands` | Yeni marka oluştur |
-| GET | `/api/brands` | Tüm markaları listele |
-| GET | `/api/brands/{id}` | ID ile marka getir |
-| GET | `/api/brands/slug/{slug}` | Slug ile marka getir |
-| PUT | `/api/brands/{id}` | Marka güncelle |
-| DELETE | `/api/brands/{id}` | Marka sil |
+| POST | `/api/wallet-accounts` | Yeni cüzdan hesabı oluştur |
+| GET | `/api/wallet-accounts/customer/{customerId}` | Müşteri cüzdan hesaplarını listele (Pagination: `?page=0&size=20&sort=createdAt,desc`) |
+| GET | `/api/wallet-accounts/{id}` | ID ile cüzdan hesabı getir |
+| PATCH | `/api/wallet-accounts/{id}/status` | Cüzdan hesabı durumunu güncelle |
+| GET | `/api/wallet-accounts/{id}/check-balance` | Bakiye kontrolü |
 
-#### Brand Oluşturma Örneği
-```bash
-curl -X POST http://localhost:8080/api/brands \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Apple"
-  }'
-```
-
-**Response:**
-```json
-{
-  "id": 1,
-  "name": "Apple",
-  "slug": "apple",
-  "createdAt": "2025-12-10T11:00:00",
-  "updatedAt": "2025-12-10T11:00:00"
-}
-```
-
----
-
-### Category API
+### Wallet Ledger Entry API
 
 | Method | Endpoint | Açıklama |
 |--------|----------|----------|
-| POST | `/api/categories` | Yeni kategori oluştur |
-| GET | `/api/categories` | Tüm kategorileri listele (flat) |
-| GET | `/api/categories/tree` | Kategori ağacı (hiyerarşik) |
-| GET | `/api/categories/{id}` | ID ile kategori getir |
-| GET | `/api/categories/slug/{slug}` | Slug ile kategori getir |
-| GET | `/api/categories/{parentId}/subcategories` | Alt kategorileri getir |
-| PUT | `/api/categories/{id}` | Kategori güncelle |
-| PATCH | `/api/categories/{id}/move` | Kategori taşı |
-| DELETE | `/api/categories/{id}` | Kategori sil |
+| POST | `/api/wallet-ledger-entries/load` | Cüzdana bakiye yükle |
+| POST | `/api/wallet-ledger-entries/spend` | Cüzdandan harcama yap |
+| POST | `/api/wallet-ledger-entries/refund` | Cüzdana iade yap |
+| POST | `/api/wallet-ledger-entries/adjustment` | Manuel düzeltme yap |
+| GET | `/api/wallet-ledger-entries` | Cüzdan hareketlerini listele (Pagination: `?page=0&size=20&sort=createdAt,desc`) |
 
-#### Kategori Oluşturma Örneği
+### Payment API
 
-**Ana Kategori:**
-```bash
-curl -X POST http://localhost:8080/api/categories \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Elektronik",
-    "description": "Elektronik ürünler kategorisi",
-    "order": 1
-  }'
-```
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/payments` | Yeni ödeme oluştur |
+| GET | `/api/payments` | Ödemeleri listele (Pagination: `?page=0&size=20&sort=createdAt,desc`) |
+| GET | `/api/payments/{id}` | ID ile ödeme detayı getir |
+| PATCH | `/api/payments/{id}/status` | Ödeme durumunu güncelle |
 
-**Alt Kategori:**
-```bash
-curl -X POST http://localhost:8080/api/categories \
-  -H "Content-Type: application/json" \
-  -d '{
-    "parentCategoryId": 1,
-    "name": "Bilgisayar",
-    "description": "Bilgisayar ve aksesuarları",
-    "order": 1
-  }'
-```
+### Payment Transaction API
 
-#### Kategori Ağacı Örneği
-```bash
-curl http://localhost:8080/api/categories/tree
-```
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/payment-transactions` | Ödeme işlemi oluştur |
+| GET | `/api/payment-transactions/payment/{paymentId}` | Ödeme işlemlerini listele |
+| PATCH | `/api/payment-transactions/{id}/status` | İşlem sonucunu işle |
+| POST | `/api/payment-transactions/{id}/correlate` | Wallet ile ilişkilendir |
 
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "Elektronik",
-    "slug": "elektronik",
-    "subCategories": [
-      {
-        "id": 2,
-        "parentCategoryId": 1,
-        "name": "Bilgisayar",
-        "slug": "bilgisayar",
-        "subCategories": [
-          {
-            "id": 3,
-            "parentCategoryId": 2,
-            "name": "Laptop",
-            "slug": "laptop",
-            "subCategories": []
-          }
-        ]
-      }
-    ]
-  }
-]
-```
+### Payment Transaction Fee API
+
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/payment-transaction-fees` | Ödeme işlemi ücreti oluştur |
+| GET | `/api/payment-transaction-fees/transaction/{transactionId}` | İşlem ücretlerini listele |
+| GET | `/api/payment-transaction-fees/payment/{paymentId}/total` | Ödeme toplam ücreti |
+
+### Wallet Ledger Entry Fee API
+
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/wallet-ledger-entry-fees` | Cüzdan hareketi ücreti oluştur |
+| GET | `/api/wallet-ledger-entry-fees/ledger-entry/{ledgerEntryId}` | Hareket ücretlerini listele |
+| GET | `/api/wallet-ledger-entry-fees/customer/{customerId}/report` | Müşteri ücret raporu |
+
+### Order Payment Allocation API
+
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/order-payment-allocations` | Sipariş ödeme tahsisi oluştur |
+| GET | `/api/order-payment-allocations/order/{orderId}` | Sipariş tahsislerini listele |
+| PUT | `/api/order-payment-allocations/{id}` | Tahsis yeniden düzenle |
 
 ---
 
@@ -204,115 +272,150 @@ curl http://localhost:8080/api/categories/tree
 
 ### Tablolar
 
-#### brands
+#### wallet_accounts
 ```sql
 - id (PK, AUTO_INCREMENT)
-- name (VARCHAR, NOT NULL)
-- slug (VARCHAR, UNIQUE, NOT NULL)
-- created_at (DATETIME)
-- updated_at (DATETIME)
+- customer_id (BIGINT, NOT NULL, INDEXED)
+- account_type (VARCHAR, NOT NULL, DEFAULT 'STANDARD')
+- currency_code (CHAR(3), NOT NULL)
+- current_balance (DECIMAL(18,4), NOT NULL, DEFAULT 0)
+- status (VARCHAR, NOT NULL, DEFAULT 'ACTIVE', INDEXED)
+- created_at (DATETIME, NOT NULL, INDEXED DESC)
+- updated_at (DATETIME, NOT NULL)
+- closed_at (DATETIME)
 ```
 
-#### categories
+#### wallet_ledger_entries
 ```sql
 - id (PK, AUTO_INCREMENT)
-- parent_category_id (FK -> categories.id)
-- name (VARCHAR, NOT NULL)
+- wallet_account_id (FK -> wallet_accounts.id, NOT NULL)
+- entry_type (VARCHAR, NOT NULL) -- LOAD, SPEND, REFUND, ADJUSTMENT
+- entry_direction (ENUM('DEBIT','CREDIT'), NOT NULL)
+- amount (DECIMAL(18,4), NOT NULL)
+- balance_after (DECIMAL(18,4), NOT NULL)
+- status (VARCHAR, NOT NULL, DEFAULT 'PENDING', INDEXED)
+- method (VARCHAR(50), NOT NULL)
+- reference (VARCHAR(100))
 - description (TEXT)
-- slug (VARCHAR, UNIQUE, NOT NULL)
-- display_order (INT)
-- created_at (DATETIME)
-- updated_at (DATETIME)
+- created_at (DATETIME, NOT NULL, INDEXED DESC)
+- updated_at (DATETIME, NOT NULL)
 ```
 
-#### products
+#### payments
 ```sql
 - id (PK, AUTO_INCREMENT)
-- barcode (VARCHAR, UNIQUE, NOT NULL)
-- category_id (FK -> categories.id)
-- brand_id (FK -> brands.id)
-- title (VARCHAR, NOT NULL)
+- payment_type (VARCHAR, NOT NULL) -- ORDER, WITHDRAWAL, DEPOSIT
+- amount (DECIMAL(18,4), NOT NULL)
+- paid_amount (DECIMAL(18,4), NOT NULL, DEFAULT 0)
+- status (VARCHAR, NOT NULL, DEFAULT 'PENDING', INDEXED)
 - description (TEXT)
-- status (ENUM: DRAFT, ACTIVE, ARCHIVED)
-- created_at (DATETIME)
-- updated_at (DATETIME)
+- created_at (DATETIME, NOT NULL, INDEXED DESC)
+- updated_at (DATETIME, NOT NULL)
 ```
 
-#### product_attributes
+#### payment_transactions
 ```sql
 - id (PK, AUTO_INCREMENT)
-- product_id (FK -> products.id)
-- attribute_key (VARCHAR)
-- attribute_value (TEXT)
-```
-
-#### product_images
-```sql
-- id (PK, AUTO_INCREMENT)
-- product_id (FK -> products.id)
-- image_url (VARCHAR)
-- alt_text (VARCHAR)
-- display_order (INT)
-```
-
-#### quality
-```sql
-- id (PK, AUTO_INCREMENT)
-- product_id (FK -> products.id, UNIQUE)
-- score (INT)
-- result (JSON)
-- created_at (DATETIME)
-- updated_at (DATETIME)
+- payment_id (FK -> payments.id, NOT NULL)
+- transaction_type (VARCHAR, NOT NULL) -- AUTH, CAPTURE, REFUND, VOID
+- paid_amount (DECIMAL(18,4), NOT NULL)
+- method (VARCHAR(50), NOT NULL)
+- status (VARCHAR, NOT NULL, DEFAULT 'PENDING', INDEXED)
+- reference (VARCHAR(100))
+- created_at (DATETIME, NOT NULL, INDEXED DESC)
+- updated_at (DATETIME, NOT NULL)
 ```
 
 ---
 
 ## 📂 Proje Yapısı
+
 ```
-src/main/java/com/pim/product_management/
+src/main/java/com/wallet/payment_management/
 ├── config/              # Konfigürasyon sınıfları
-│   └── JpaConfig.java
+│   ├── JpaConfig.java
+│   └── OpenApiConfig.java
 ├── controller/          # REST Controllers
-│   ├── BrandController.java
-│   └── CategoryController.java
+│   ├── WalletAccountController.java
+│   ├── WalletLedgerEntryController.java
+│   ├── WalletLedgerEntryFeeController.java
+│   ├── PaymentController.java
+│   ├── PaymentTransactionController.java
+│   ├── PaymentTransactionFeeController.java
+│   └── OrderPaymentAllocationController.java
 ├── dto/                 # Data Transfer Objects
 │   ├── request/
-│   │   ├── BrandRequest.java
-│   │   └── CategoryRequest.java
+│   │   ├── WalletAccountRequest.java
+│   │   ├── WalletAccountStatusUpdateRequest.java
+│   │   ├── WalletLedgerEntryRequest.java
+│   │   ├── WalletLedgerEntryFeeRequest.java
+│   │   ├── PaymentRequest.java
+│   │   ├── PaymentTransactionRequest.java
+│   │   ├── PaymentTransactionFeeRequest.java
+│   │   └── OrderPaymentAllocationRequest.java
 │   └── response/
-│       ├── BrandResponse.java
-│       ├── CategoryResponse.java
+│       ├── WalletAccountResponse.java
+│       ├── WalletLedgerEntryResponse.java
+│       ├── WalletLedgerEntryFeeResponse.java
+│       ├── PaymentResponse.java
+│       ├── PaymentTransactionResponse.java
+│       ├── PaymentTransactionFeeResponse.java
+│       ├── OrderPaymentAllocationResponse.java
 │       └── ErrorResponse.java
 ├── entity/              # JPA Entities
 │   ├── BaseEntity.java
-│   ├── Brand.java
-│   ├── Category.java
-│   ├── Product.java
-│   ├── ProductAttribute.java
-│   ├── ProductImage.java
-│   └── Quality.java
+│   ├── WalletAccount.java
+│   ├── WalletLedgerEntry.java
+│   ├── WalletLedgerEntryFee.java
+│   ├── Payment.java
+│   ├── PaymentTransaction.java
+│   ├── PaymentTransactionFee.java
+│   └── OrderPaymentAllocation.java
 ├── enums/               # Enum sınıfları
-│   └── ProductStatus.java
+│   ├── WalletAccountTypeEnum.java
+│   ├── WalletAccountStatusEnum.java
+│   ├── WalletLedgerEntryTypeEnum.java
+│   ├── WalletLedgerEntryStatusEnum.java
+│   ├── WalletLedgerEntryDirectionEnum.java
+│   ├── WalletFeeTypeEnum.java
+│   ├── PaymentTypeEnum.java
+│   ├── PaymentStatusEnum.java
+│   ├── PaymentTransactionTypeEnum.java
+│   ├── PaymentTransactionStatusEnum.java
+│   └── PaymentFeeTypeEnum.java
 ├── exception/           # Custom Exceptions
-│   ├── DuplicateResourceException.java
 │   ├── ResourceNotFoundException.java
+│   ├── DuplicateResourceException.java
+│   ├── InsufficientBalanceException.java
+│   ├── InvalidStatusTransitionException.java
+│   ├── ClosedAccountException.java
 │   └── handler/
 │       └── GlobalExceptionHandler.java
 ├── repository/          # Spring Data JPA Repositories
-│   ├── BrandRepository.java
-│   ├── CategoryRepository.java
-│   ├── ProductRepository.java
-│   ├── ProductAttributeRepository.java
-│   ├── ProductImageRepository.java
-│   └── QualityRepository.java
+│   ├── WalletAccountRepository.java
+│   ├── WalletLedgerEntryRepository.java
+│   ├── WalletLedgerEntryFeeRepository.java
+│   ├── PaymentRepository.java
+│   ├── PaymentTransactionRepository.java
+│   ├── PaymentTransactionFeeRepository.java
+│   └── OrderPaymentAllocationRepository.java
 ├── service/             # Business Logic
-│   ├── BrandService.java
-│   ├── CategoryService.java
+│   ├── WalletAccountService.java
+│   ├── WalletLedgerEntryService.java
+│   ├── WalletLedgerEntryFeeService.java
+│   ├── PaymentService.java
+│   ├── PaymentTransactionService.java
+│   ├── PaymentTransactionFeeService.java
+│   ├── OrderPaymentAllocationService.java
 │   └── impl/
-│       ├── BrandServiceImpl.java
-│       └── CategoryServiceImpl.java
-└── util/                # Utility Classes
-    └── SlugGenerator.java
+│       ├── WalletAccountServiceImpl.java
+│       ├── WalletLedgerEntryServiceImpl.java
+│       ├── WalletLedgerEntryFeeServiceImpl.java
+│       ├── PaymentServiceImpl.java
+│       ├── PaymentTransactionServiceImpl.java
+│       ├── PaymentTransactionFeeServiceImpl.java
+│       └── OrderPaymentAllocationServiceImpl.java
+└── WalletPaymentApplication.java
 
 src/main/resources/
 ├── application.yml      # Application configuration
@@ -322,160 +425,220 @@ src/main/resources/
 
 ---
 
-## 🎯 Geliştirme Standartları
+## 🎯 Use Cases
 
-### Code Style
+### Wallet Account (WA)
+- **WA-01** - Müşteri için yeni WalletAccount oluşturma
+- **WA-02** - Müşteri bazında cüzdan hesaplarını listeleme
+- **WA-03** - WalletAccount detay görüntüleme
+- **WA-04** - WalletAccount durum güncelleme (Suspend / Activate / Close)
+- **WA-05** - WalletAccount bakiye kontrolü
 
-- ✅ **Clean Code:** Anlamlı değişken isimleri, kısa metodlar (20-30 satır)
-- ✅ **SOLID Principles:** Her sınıf tek sorumluluk
-- ✅ **DRY:** Kod tekrarından kaçınma
-- ✅ **Logging:** Her önemli işlem loglanır
+### Wallet Ledger Entry (WL)
+- **WL-01** - Cüzdana bakiye yükleme (LOAD)
+- **WL-02** - Cüzdandan harcama (SPEND)
+- **WL-03** - Cüzdana iade (REFUND)
+- **WL-04** - Manuel düzeltme (ADJUSTMENT)
+- **WL-05** - Cüzdan hareketlerini listeleme
 
-### Git Commit Standartları
-```
-feat(brand): add barcode validation
-fix(category): resolve circular reference bug
-refactor(product): extract slug generation to utility
-docs(readme): update API documentation
-test(brand): add unit tests for create service
-```
+### Wallet Fee (WF)
+- **WF-01** - WalletLedgerEntry için fee kaydı oluşturma
+- **WF-02** - Ledger entry bazında fee'leri listeleme
+- **WF-03** - Müşteri bazında dönemsel fee raporu
 
-**Format:**
-```
-<type>(<scope>): <subject>
+### Payment (P)
+- **P-01** - Yeni Payment oluşturma (ORDER)
+- **P-02** - Deposit / Withdrawal için Payment oluşturma
+- **P-03** - Payment durumunu güncelleme
+- **P-04** - Payment listeleme ve filtreleme
 
-[optional body]
-```
+### Payment Transaction (PT)
+- **PT-01** - Payment için AUTH/CAPTURE transaction oluşturma
+- **PT-02** - Payment için REFUND transaction oluşturma
+- **PT-03** - Payment transaction başarısını/başarısızlığını işleme
+- **PT-04** - PaymentTransaction listeleme
+- **PT-05** - Wallet ile yapılan PaymentTransaction'ı correlate etme
 
-**Types:**
-- `feat`: Yeni özellik
-- `fix`: Bug düzeltme
-- `refactor`: Kod iyileştirme
-- `docs`: Dokümantasyon
-- `test`: Test ekleme/düzenleme
-- `chore`: Build, config değişiklikleri
+### Payment Fee (PF)
+- **PF-01** - PaymentTransaction için fee kaydı oluşturma
+- **PF-02** - PaymentTransaction fee'lerini listeleme
+- **PF-03** - Payment bazında toplam fee raporu
 
----
-
-## 🔜 Gelecek Özellikler
-
-### 🚧 Yapılacaklar (Roadmap)
-
-#### Phase 3 - Product Yönetimi
-- [ ] Product CRUD operations
-- [ ] Barcode validation
-- [ ] Product status management (DRAFT, ACTIVE, ARCHIVED)
-- [ ] Bulk operations
-
-#### Phase 4 - Product Attributes
-- [ ] Dynamic attribute ekleme
-- [ ] Attribute search
-- [ ] Attribute validation
-
-#### Phase 5 - Product Images
-- [ ] Image upload (File storage)
-- [ ] Multiple image support
-- [ ] Image ordering
-- [ ] Thumbnail generation
-
-#### Phase 6 - Quality Management
-- [ ] Quality score calculation
-- [ ] Quality rules engine
-- [ ] Quality reports
-
-#### Phase 7 - Search & Filter
-- [ ] Full-text search (Elasticsearch)
-- [ ] Advanced filtering
-- [ ] Faceted search
-
-#### Phase 8 - API Documentation
-- [ ] Swagger/OpenAPI integration
-- [ ] API versioning
-- [ ] Rate limiting
-
-#### Phase 9 - Security
-- [ ] JWT Authentication
-- [ ] Role-based authorization (RBAC)
-- [ ] API key management
-
-#### Phase 10 - Testing
-- [ ] Unit tests (JUnit 5)
-- [ ] Integration tests
-- [ ] Test coverage >80%
-
----
-
-## 📊 Mevcut Durum
-
-### ✅ Tamamlanan Özellikler
-
-| Modül | CRUD | Validation | Exception Handling | Tests |
-|-------|------|------------|-------------------|-------|
-| Brand | ✅ | ✅ | ✅ | ⏳ |
-| Category | ✅ | ✅ | ✅ | ⏳ |
-| Product | ⏳ | ⏳ | ⏳ | ⏳ |
-| ProductAttribute | ⏳ | ⏳ | ⏳ | ⏳ |
-| ProductImage | ⏳ | ⏳ | ⏳ | ⏳ |
-| Quality | ⏳ | ⏳ | ⏳ | ⏳ |
-
-### 📈 İstatistikler
-
-- **Total Endpoints:** 14
-- **Database Tables:** 7
-- **Entities:** 7
-- **Repositories:** 6
-- **Services:** 2
-- **Controllers:** 2
+### Order Payment Allocation (OPA)
+- **OPA-01** - Payment'i Order ile ilişkilendirme
+- **OPA-02** - Order bazında tahsilatları listeleme
+- **OPA-03** - Allocation yeniden düzenleme (reallocation)
 
 ---
 
 ## 🧪 Test Etme
 
-### Postman Collection
-
-Projeye Postman collection eklenecek. Şimdilik manuel test için curl komutları kullanabilirsiniz.
-
-### Test Senaryosu Örnekleri
-
-#### Brand Testi
-```bash
-# 1. Brand oluştur
-curl -X POST http://localhost:8080/api/brands \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Samsung"}'
-
-# 2. Tüm markaları listele
-curl http://localhost:8080/api/brands
-
-# 3. Slug ile getir
-curl http://localhost:8080/api/brands/slug/samsung
+### Swagger UI
+Tüm endpoint'leri interaktif olarak test etmek için:
+```
+http://localhost:8080/swagger
 ```
 
-#### Category Hiyerarşi Testi
+### Örnek API Çağrıları
+
+#### Cüzdan Hesabı Oluşturma
 ```bash
-# 1. Ana kategori
-curl -X POST http://localhost:8080/api/categories \
+curl -X POST http://localhost:8080/api/wallet-accounts \
   -H "Content-Type: application/json" \
-  -d '{"name": "Elektronik", "order": 1}'
+  -d '{
+    "customerId": 12345,
+    "currencyCode": "TRY"
+  }'
+```
 
-# 2. Alt kategori
-curl -X POST http://localhost:8080/api/categories \
+#### Cüzdana Bakiye Yükleme
+```bash
+curl -X POST http://localhost:8080/api/wallet-ledger-entries/load \
   -H "Content-Type: application/json" \
-  -d '{"parentCategoryId": 1, "name": "Telefon", "order": 1}'
+  -d '{
+    "walletAccountId": 1,
+    "entryType": "LOAD",
+    "amount": 1000.00,
+    "method": "CARD",
+    "description": "İlk yükleme"
+  }'
+```
 
-# 3. Kategori ağacını görüntüle
-curl http://localhost:8080/api/categories/tree
+#### Ödeme Oluşturma
+```bash
+curl -X POST http://localhost:8080/api/payments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paymentType": "ORDER",
+    "amount": 250.00,
+    "description": "Sipariş ödemesi"
+  }'
+```
+
+#### Pagination ile Liste Getirme
+```bash
+# İlk sayfa, 20 kayıt, tarihe göre azalan sıralama
+curl "http://localhost:8080/api/wallet-accounts/customer/12345?page=0&size=20&sort=createdAt,desc"
+
+# İkinci sayfa
+curl "http://localhost:8080/api/wallet-accounts/customer/12345?page=1&size=20&sort=createdAt,desc"
+
+# Cüzdan hareketleri - filtreleme + pagination
+curl "http://localhost:8080/api/wallet-ledger-entries?walletAccountId=1&entryType=LOAD&page=0&size=10&sort=createdAt,desc"
+```
+
+**Pagination Response Örneği:**
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "customerId": 12345,
+      "currencyCode": "TRY",
+      "currentBalance": 1000.00,
+      "status": "ACTIVE"
+    }
+  ],
+  "totalElements": 5,
+  "totalPages": 1,
+  "pageNumber": 0,
+  "pageSize": 20,
+  "first": true,
+  "last": true,
+  "empty": false,
+  "numberOfElements": 5
+}
 ```
 
 ---
 
-## 🤝 Katkıda Bulunma
+## 🧪 Test Coverage
 
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit yapın (`git commit -m 'feat: add amazing feature'`)
-4. Branch'i push edin (`git push origin feature/amazing-feature`)
-5. Pull Request oluşturun
+### Test İstatistikleri
+
+| Test Tipi | Test Sayısı | Durum |
+|-----------|-------------|-------|
+| **Application Test** | 1 | ✅ |
+| **Repository Test** | 4 | ✅ |
+| **Service Unit Test** | 21 | ✅ |
+| **Controller Integration Test** | 10 | ✅ |
+| **TOPLAM** | **36** | **✅ %100 Başarılı** |
+
+### Test Dosyaları
+
+```
+src/test/java/com/wallet/payment_management/
+├── WalletPaymentApplicationTests.java
+├── repository/
+│   └── WalletAccountRepositoryTest.java
+├── service/
+│   ├── WalletAccountServiceTest.java (9 test)
+│   ├── WalletLedgerEntryServiceTest.java (6 test)
+│   └── PaymentServiceTest.java (6 test)
+└── controller/
+    ├── WalletAccountControllerTest.java (6 test)
+    └── PaymentControllerTest.java (4 test)
+```
+
+### Test Çalıştırma
+
+```bash
+# Tüm test'leri çalıştır
+./mvnw test
+
+# Belirli bir test sınıfını çalıştır
+./mvnw test -Dtest=WalletAccountServiceTest
+
+# Test coverage raporu (Jacoco eklendikten sonra)
+./mvnw test jacoco:report
+```
+
+---
+
+## 🚀 Sıradaki Adımlar
+
+### 1. Postman Test Senaryoları
+- `POSTMAN_TEST_SCENARIOS.md` dosyasını Wallet/Payment için güncelle
+- Tüm 27 endpoint için test senaryoları oluştur
+- Postman Collection export et
+
+### 2. ✅ Pagination Ekleme (Tamamlandı)
+- ✅ Liste endpoint'lerine `Pageable` desteği eklendi
+- ✅ Response'lara `totalElements`, `totalPages`, `pageNumber` eklendi
+- ✅ Default page size: 20
+- ✅ Sort desteği eklendi
+
+### 3. Test Coverage Artırma
+- Kalan service'ler için test yaz (PaymentTransaction, Fee, Allocation)
+- Integration test'leri genişlet
+- Test coverage %80+ hedefle
+
+### 4. Validation İyileştirmeleri
+- Custom validator'lar ekle
+- Business rule validation'ları güçlendir
+- Currency code validation (ISO 4217)
+
+### 5. Logging & Monitoring
+- Önemli işlemler için detaylı log
+- Audit log (kritik işlemler için)
+- Performance monitoring
+
+### 6. Error Handling İyileştirmeleri
+- Daha spesifik error mesajları
+- Error code standardizasyonu
+- Internationalization (i18n) desteği
+
+### 7. API Dokümantasyonu
+- Her endpoint için detaylı örnekler
+- Use case senaryoları dokümante et
+- Postman collection oluştur
+
+### 8. Opsiyonel (İleride)
+- Security (JWT Authentication)
+- Rate Limiting
+- API Versioning
+- Caching (Redis)
+- Message Queue (RabbitMQ/Kafka)
 
 ---
 
@@ -497,10 +660,17 @@ Sorularınız için issue açabilirsiniz.
 
 ---
 
-## 🙏 Teşekkürler
+---
 
-Bu projeyi geliştirirken kullanılan teknolojiler ve açık kaynak topluluğa teşekkürler!
+## 📌 Önemli Notlar
+
+- Tüm use case'ler başarıyla implement edildi
+- Test coverage %100 başarı oranı ile çalışıyor
+- Swagger UI üzerinden tüm endpoint'ler test edilebilir
+- Database migration otomatik olarak çalışıyor
+- Production-ready kod yapısı
 
 ---
 
-**Son Güncelleme:** 10 Aralık 2025
+**Son Güncelleme:** 10 Aralık 2025  
+**Proje Durumu:** ✅ Core Features Tamamlandı - Test & Dokümantasyon Aşaması

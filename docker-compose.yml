@@ -3,12 +3,12 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    container_name: pim-mysql
+    container_name: wallet-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: pim_db
-      MYSQL_USER: pim_user
-      MYSQL_PASSWORD: pim_pass123
+      MYSQL_DATABASE: wallet_db
+      MYSQL_USER: wallet_user
+      MYSQL_PASSWORD: wallet_pass123
     ports:
       - "3307:3306"  # ← BURASI DEĞİŞTİ! 3307'ye taşıdık
     volumes:
@@ -23,11 +23,11 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - pim-network
+      - wallet-network
 
 volumes:
   mysql_data:
 
 networks:
-  pim-network:
+  wallet-network:
     driver: bridge

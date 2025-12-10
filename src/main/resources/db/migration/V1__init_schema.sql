@@ -1,76 +1,104 @@
--- Brands Table
-CREATE TABLE brands (
-                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                        name VARCHAR(100) NOT NULL,
-                        slug VARCHAR(120) NOT NULL UNIQUE,
-                        created_at DATETIME NOT NULL,
-                        updated_at DATETIME NOT NULL,
-                        INDEX idx_brands_slug (slug)
+-- Wallet Accounts Table
+CREATE TABLE wallet_accounts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    account_type VARCHAR(50) NOT NULL DEFAULT 'STANDARD',
+    currency_code CHAR(3) NOT NULL,
+    current_balance DECIMAL(18,4) NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    closed_at DATETIME,
+    INDEX idx_wallet_accounts_customer_id (customer_id),
+    INDEX idx_wallet_accounts_status (status),
+    INDEX idx_wallet_accounts_created_at (created_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Categories Table
-CREATE TABLE categories (
-                            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                            parent_category_id BIGINT,
-                            name VARCHAR(100) NOT NULL,
-                            description TEXT,
-                            slug VARCHAR(120) NOT NULL UNIQUE,
-                            display_order INT NOT NULL DEFAULT 0,
-                            created_at DATETIME NOT NULL,
-                            updated_at DATETIME NOT NULL,
-                            INDEX idx_categories_parent (parent_category_id),
-                            INDEX idx_categories_slug (slug),
-                            FOREIGN KEY (parent_category_id) REFERENCES categories(id) ON DELETE CASCADE
+-- Wallet Ledger Entries Table
+CREATE TABLE wallet_ledger_entries (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    wallet_account_id BIGINT NOT NULL,
+    entry_type VARCHAR(50) NOT NULL,
+    entry_direction ENUM('DEBIT', 'CREDIT') NOT NULL,
+    amount DECIMAL(18,4) NOT NULL,
+    balance_after DECIMAL(18,4) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    method VARCHAR(50) NOT NULL,
+    reference VARCHAR(100),
+    description TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_wallet_ledger_entries_wallet_account_id (wallet_account_id),
+    INDEX idx_wallet_ledger_entries_status (status),
+    INDEX idx_wallet_ledger_entries_created_at (created_at DESC),
+    FOREIGN KEY (wallet_account_id) REFERENCES wallet_accounts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Products Table
-CREATE TABLE products (
-                          id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                          barcode VARCHAR(50) NOT NULL UNIQUE,
-                          category_id BIGINT NOT NULL,
-                          brand_id BIGINT NOT NULL,
-                          title VARCHAR(200) NOT NULL,
-                          description TEXT,
-                          status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
-                          created_at DATETIME NOT NULL,
-                          updated_at DATETIME NOT NULL,
-                          INDEX idx_products_barcode (barcode),
-                          INDEX idx_products_category (category_id),
-                          INDEX idx_products_brand (brand_id),
-                          INDEX idx_products_status (status),
-                          FOREIGN KEY (category_id) REFERENCES categories(id),
-                          FOREIGN KEY (brand_id) REFERENCES brands(id)
+-- Wallet Ledger Entry Fees Table
+CREATE TABLE wallet_ledger_entry_fees (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    wallet_ledger_entry_id BIGINT NOT NULL,
+    fee_type VARCHAR(50) NOT NULL,
+    amount DECIMAL(18,4) NOT NULL,
+    description TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    FOREIGN KEY (wallet_ledger_entry_id) REFERENCES wallet_ledger_entries(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Product Attributes Table
-CREATE TABLE product_attributes (
-                                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                    product_id BIGINT NOT NULL,
-                                    attribute_key VARCHAR(100) NOT NULL,
-                                    attribute_value TEXT,
-                                    INDEX idx_product_attributes_product (product_id),
-                                    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+-- Payments Table
+CREATE TABLE payments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    payment_type VARCHAR(50) NOT NULL,
+    amount DECIMAL(18,4) NOT NULL,
+    paid_amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    description TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_payments_status (status),
+    INDEX idx_payments_created_at (created_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Product Images Table
-CREATE TABLE product_images (
-                                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                product_id BIGINT NOT NULL,
-                                image_url VARCHAR(500) NOT NULL,
-                                alt_text VARCHAR(200),
-                                display_order INT NOT NULL DEFAULT 0,
-                                INDEX idx_product_images_product (product_id),
-                                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+-- Payment Transactions Table
+CREATE TABLE payment_transactions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    payment_id BIGINT NOT NULL,
+    transaction_type VARCHAR(50) NOT NULL,
+    paid_amount DECIMAL(18,4) NOT NULL,
+    method VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    reference VARCHAR(100),
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_payment_transactions_payment_id (payment_id),
+    INDEX idx_payment_transactions_status (status),
+    INDEX idx_payment_transactions_created_at (created_at DESC),
+    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Quality Table
-CREATE TABLE quality (
-                         id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                         product_id BIGINT NOT NULL UNIQUE,
-                         score INT NOT NULL DEFAULT 0,
-                         result JSON,
-                         created_at DATETIME NOT NULL,
-                         updated_at DATETIME NOT NULL,
-                         INDEX idx_quality_product (product_id),
-                         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+-- Payment Transaction Fees Table
+CREATE TABLE payment_transaction_fees (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    payment_transaction_id BIGINT NOT NULL,
+    fee_type VARCHAR(50) NOT NULL,
+    amount DECIMAL(18,4) NOT NULL,
+    description TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    FOREIGN KEY (payment_transaction_id) REFERENCES payment_transactions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Order Payment Allocations Table
+CREATE TABLE order_payment_allocations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    payment_id BIGINT NOT NULL,
+    allocated_amount DECIMAL(18,4) NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_order_payment_allocations_order_id (order_id),
+    INDEX idx_order_payment_allocations_payment_id (payment_id),
+    INDEX idx_order_payment_allocations_created_at (created_at DESC),
+    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
